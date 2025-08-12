@@ -115,8 +115,11 @@ export default function ClockOverlay({ className, locale, scoped = false }: Cloc
           type="button"
           aria-label={isFullscreen ? "退出全屏" : "进入全屏"}
           onClick={toggleFullscreen}
-          className="pointer-events-auto ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/25 text-black backdrop-blur-md hover:bg-white/40 hover:border-white/30 hover:shadow hover:shadow-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-0 transition-colors transition-shadow duration-1200 ease-out dark:text-white dark:bg-black/35 dark:border-white/10 dark:hover:bg-black/50 dark:hover:border-white/20"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
+          className="pointer-events-auto ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/25 text-black backdrop-blur-md hover:bg-white/60 hover:border-white/30 hover:shadow hover:shadow-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-0 dark:text-white dark:bg-black/35 dark:border-white/10 dark:hover:bg-black/50 dark:hover:border-white/20"
+          style={{ 
+            WebkitTapHighlightColor: 'transparent',
+            transition: 'all 0.9s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
         >
           {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>

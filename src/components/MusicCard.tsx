@@ -270,7 +270,7 @@ export default function MusicCard({
 
   return (
     <div
-      className={`rounded-xl border border-white/20 dark:border-white/10 bg-white/25 dark:bg-black/35 backdrop-blur-xl shadow-lg shadow-black/10 w-full sm:w-[320px] max-w-[calc(100vw-1.5rem)] sm:max-w-none px-3 py-3 sm:p-4 transition-all duration-1500 ease-out will-change-transform hover:bg-white/40 hover:backdrop-blur-2xl hover:shadow-xl hover:shadow-black/20 hover:border-white/30 dark:hover:bg-black/50 dark:hover:border-white/20 text-black dark:text-white ${animate ? (mounted ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-[0.98]") : ""} ${className ?? ""}`}
+      className={`rounded-xl border border-white/20 dark:border-white/10 bg-white/25 dark:bg-black/35 backdrop-blur-xl shadow-lg shadow-black/10 w-full sm:w-[320px] max-w-[calc(100vw-1.5rem)] sm:max-w-none px-3 py-3 sm:p-4 transition-all duration-1500 ease-out will-change-transform hover:bg-white/60 hover:backdrop-blur-2xl hover:shadow-xl hover:shadow-black/20 hover:border-white/30 dark:hover:bg-black/50 dark:hover:border-white/20 text-black dark:text-white ${animate ? (mounted ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-[0.98]") : ""} ${className ?? ""}`}
     >
       <audio ref={audioRef} preload="metadata" />
 

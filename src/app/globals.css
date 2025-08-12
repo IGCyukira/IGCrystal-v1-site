@@ -287,3 +287,46 @@
 @media (prefers-reduced-motion: reduce) {
   .blob-animate-1, .blob-animate-2, .blob-animate-3 { animation: none; }
 }
+
+/* Enhanced smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Smooth scroll snap with better timing */
+.snap-y {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scroll snap timing using scroll-timeline (experimental but progressive enhancement) */
+@supports (scroll-timeline: --scroll) {
+  .snap-y {
+    scroll-timeline: --scroll;
+  }
+}
+
+/* Fallback: Use JavaScript scroll polyfill class for browsers that need it */
+.enhanced-scroll {
+  transition: scroll-top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Add momentum and easing to touch scrolling */
+@media (hover: none) and (pointer: coarse) {
+  .snap-y {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Hide scrollbars globally but keep scrolling */
+* {
+  -ms-overflow-style: none; /* IE 10+ and Edge legacy */
+  scrollbar-width: none;    /* Firefox */
+}
+*::-webkit-scrollbar {
+  display: none;            /* Chrome, Safari, newer Edge */
+  width: 0;
+  height: 0;
+}
