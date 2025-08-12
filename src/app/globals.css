@@ -288,6 +288,25 @@
   .blob-animate-1, .blob-animate-2, .blob-animate-3 { animation: none; }
 }
 
+/* Entrance animations */
+@keyframes fadeInScaleSoft {
+  0% { opacity: 0; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in-scale-soft {
+  animation: fadeInScaleSoft 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fadeInOverlay {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-fade-in-overlay {
+  animation: fadeInOverlay 600ms ease-out both;
+}
+
 /* Enhanced smooth scroll behavior */
 html {
   scroll-behavior: smooth;

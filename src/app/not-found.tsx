@@ -5,7 +5,7 @@ export default function NotFound() {
     <section className="relative min-h-[100svh] w-full grid place-items-center overflow-hidden">
       {/* Background Image */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in-scale-soft"
         style={{
           backgroundImage: 'url(/logo.webp)',
           filter: 'blur(2px) brightness(0.3)'
@@ -13,7 +13,7 @@ export default function NotFound() {
       />
       
       {/* Frosted Glass Overlay */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in-overlay" />
       
       {/* Content */}
       <div className="relative z-10 text-center px-6 py-12 text-white">
