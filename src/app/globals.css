@@ -1,0 +1,255 @@
+@import "tailwindcss";
+
+/* Optional local font for the clock overlay. Replace the file name if different. */
+@font-face {
+  font-family: "LoginClockV2";
+  src: url("/font/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+.clock-font {
+  font-family: "LoginClockV2", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Modern colon blink for clock */
+.colon-pulse {
+  display: inline-block;
+  animation: colonBlink 1.2s infinite;
+}
+
+@keyframes colonBlink {
+  0%, 60% { opacity: 1; }
+  70%, 100% { opacity: 0.2; }
+}
+
+/* Terminal caret blink (on/off, not breathing) */
+@keyframes caretBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.caret-blink {
+  animation: caretBlink 1s steps(1, end) infinite;
+}
+
+/* Lockdown glitch + scanlines */
+@keyframes glitchShake {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(1px, -1px, 0); }
+  40% { transform: translate3d(-1px, 1px, 0); }
+  60% { transform: translate3d(1px, 1px, 0); }
+  80% { transform: translate3d(-1px, -1px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+.lockdown-glitch { animation: glitchShake 600ms steps(2, end) infinite; }
+.lockdown-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.15) 0px,
+    rgba(255,255,255,0.15) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  background-size: 100% 3px;
+  animation: scanScroll 2s linear infinite;
+  pointer-events: none;
+  z-index: 50;
+}
+
+@keyframes scanScroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 3px; }
+}
+
+/* 多行错位崩坏效果 */
+.corrupted-lines {
+  position: relative;
+  display: block;
+  line-height: 1;
+}
+
+.corrupted-lines .line {
+  display: block;
+  animation: lineGlitch 0.1s linear infinite;
+}
+
+.corrupted-lines .line:nth-child(1) { 
+  transform: translateX(0px); 
+  color: #ffffff;
+  animation-delay: 0s;
+}
+.corrupted-lines .line:nth-child(2) { 
+  transform: translateX(-3px); 
+  color: #ff004088;
+  animation-delay: 0.02s;
+}
+.corrupted-lines .line:nth-child(3) { 
+  transform: translateX(2px); 
+  color: #00ffff77;
+  animation-delay: 0.04s;
+}
+.corrupted-lines .line:nth-child(4) { 
+  transform: translateX(-5px); 
+  color: #ff004066;
+  animation-delay: 0.06s;
+}
+.corrupted-lines .line:nth-child(5) { 
+  transform: translateX(4px); 
+  color: #00ffff55;
+  animation-delay: 0.08s;
+}
+.corrupted-lines .line:nth-child(6) { 
+  transform: translateX(-2px); 
+  color: #ff004044;
+  animation-delay: 0.1s;
+}
+.corrupted-lines .line:nth-child(7) { 
+  transform: translateX(6px); 
+  color: #00ffff33;
+  animation-delay: 0.12s;
+}
+.corrupted-lines .line:nth-child(8) { 
+  transform: translateX(-4px); 
+  color: #ff004033;
+  animation-delay: 0.14s;
+}
+.corrupted-lines .line:nth-child(9) { 
+  transform: translateX(1px); 
+  color: #00ffff22;
+  animation-delay: 0.16s;
+}
+.corrupted-lines .line:nth-child(10) { 
+  transform: translateX(-6px); 
+  color: #ff004022;
+  animation-delay: 0.18s;
+}
+
+@keyframes lineGlitch {
+  0% { transform: translateX(var(--offset, 0)); }
+  25% { transform: translateX(calc(var(--offset, 0) + 1px)); }
+  50% { transform: translateX(calc(var(--offset, 0) - 1px)); }
+  75% { transform: translateX(calc(var(--offset, 0) + 2px)); }
+  100% { transform: translateX(var(--offset, 0)); }
+}
+
+/* 简化的基础崩坏效果 */
+.corruption-text {
+  position: relative;
+  display: inline-block;
+  animation: basicShake 0.1s linear infinite;
+}
+
+@keyframes basicShake {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-1px, 1px, 0); }
+  50% { transform: translate3d(1px, -1px, 0); }
+  75% { transform: translate3d(-1px, -1px, 0); }
+  100% { transform: translate3d(1px, 1px, 0); }
+}
+
+/* Windows XP 弹窗叠加效果 */
+.xp-popup {
+  position: absolute;
+  width: 320px;
+  background: linear-gradient(to bottom, #3168d5, #1e4db8);
+  border: 2px solid #000;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,0.35),
+    2px 2px 4px rgba(0,0,0,0.55);
+  color: white;
+  font-family: "Tahoma", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.xp-titlebar {
+  background: linear-gradient(to bottom, #0053ee, #0040dc);
+  margin: 0;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: 12px;
+  user-select: none;
+}
+
+.xp-content {
+  padding: 8px;
+  background: #f0f0f0;
+  color: #000;
+  border-top: 1px inset #ddd;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xp-icon {
+  width: 28px;
+  height: 28px;
+  background: #ff0000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.popup-dynamic { opacity: 0; transform: scale(0) rotate(6deg); }
+
+@keyframes popupAppear {
+  0% { opacity: 0; transform: scale(0) rotate(6deg); }
+  60% { transform: scale(1.06) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes popupGlitch {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(1px, 1px); }
+  50% { transform: translate(-1px, -1px); }
+  75% { transform: translate(2px, 0); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Terminal font */
+@font-face {
+  font-family: "ConsolasLocal";
+  src: url("/font/Consolas.woff") format("woff2"), url("/font/Consolas.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+.terminal-font {
+  font-family: "ConsolasLocal", Consolas, "Courier New", ui-monospace, monospace;
+}
+
+/* Animated blurry blobs for terminal background */
+@keyframes blobFloat1 {
+  0%, 100% { transform: translate3d(-12%, -8%, 0) scale(1); }
+  33% { transform: translate3d(8%, -2%, 0) scale(1.08); }
+  66% { transform: translate3d(-4%, 10%, 0) scale(0.96); }
+}
+@keyframes blobFloat2 {
+  0%, 100% { transform: translate3d(10%, 6%, 0) scale(1); }
+  25% { transform: translate3d(-6%, 4%, 0) scale(1.06); }
+  50% { transform: translate3d(6%, -8%, 0) scale(0.94); }
+  75% { transform: translate3d(-2%, 2%, 0) scale(1.02); }
+}
+@keyframes blobFloat3 {
+  0%, 100% { transform: translate3d(-6%, 12%, 0) scale(1); }
+  40% { transform: translate3d(12%, -6%, 0) scale(1.05); }
+  80% { transform: translate3d(-10%, -4%, 0) scale(0.97); }
+}
+
+.blob-animate-1 { animation: blobFloat1 24s ease-in-out infinite; }
+.blob-animate-2 { animation: blobFloat2 28s ease-in-out infinite; }
+.blob-animate-3 { animation: blobFloat3 32s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .blob-animate-1, .blob-animate-2, .blob-animate-3 { animation: none; }
+}

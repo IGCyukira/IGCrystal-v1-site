@@ -1,0 +1,286 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+export type TerminalSectionProps = {
+  lines?: string[];
+  typingSpeedMs?: number;
+  className?: string;
+  id?: string;
+  username?: string;
+  hostname?: string;
+};
+
+const defaultLines = [
+  "ViaLonga, Somniviva",
+  "",
+  "The wind silvers the plain; footprints fade into stars. Shadows stack like old dreams.",
+  "",
+  "Fog coils at the ankles like half-woken thoughts. Dawn thins the dark; dew-laced stone flickers cold.",
+  "The air tastes of grass and earth, a low hum of hills and water. Shadows pull long—time unspools in",
+  "silence, then vanishes at an unseen end. A single bird-call reminds: there are roads unwalked,",
+  "dreams unawakened. Heartbeat keeps time with steps. With every breath, a slope is climbed; with",
+  "every lift of the eyes, a farther horizon appears. The road is long; the dream stays.",
+];
+
+export default function TerminalSection({
+  lines = defaultLines,
+  typingSpeedMs = 30,
+  className,
+  id = "terminal",
+  username = "user",
+  hostname,
+}: TerminalSectionProps) {
+  const [output, setOutput] = useState<string>("");
+  const [typingDone, setTypingDone] = useState<boolean>(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [inView, setInView] = useState<boolean>(false);
+  const contentRef = useRef<string>("");
+  const timeoutRef = useRef<number | null>(null);
+  const inputRef = useRef<HTMLDivElement | null>(null);
+  const [input, setInput] = useState<string>("");
+  const [entries, setEntries] = useState<Array<React.ReactNode>>([]);
+  const [isGlitch, setIsGlitch] = useState<boolean>(false);
+  const idxRef = useRef<number>(0);
+  const bufferRef = useRef<string>("");
+  const [hostLabel, setHostLabel] = useState<string>("");
+  const [pendingConfirm, setPendingConfirm] = useState<null | "lockdown">(null);
+
+  // Observe visibility to start typing when this section comes into view
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const e = entries[0];
+        setInView(e.isIntersecting && e.intersectionRatio >= 0.35);
+      },
+      { threshold: [0, 0.35, 0.75, 1] }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Build content when lines change and reset typing state
+  useEffect(() => {
+    contentRef.current = lines.join("\n") + "\n";
+    idxRef.current = 0;
+    bufferRef.current = "";
+    setOutput("");
+    setTypingDone(false);
+    // do not auto-start; wait for inView scheduler
+  }, [lines]);
+
+  // Scheduler: pause/resume typing based on visibility
+  useEffect(() => {
+    const tick = () => {
+      const all = contentRef.current;
+      const nextChar = all[idxRef.current];
+      if (nextChar === undefined) {
+        setTypingDone(true);
+        timeoutRef.current = null;
+        return;
+      }
+      bufferRef.current += nextChar;
+      idxRef.current += 1;
+      setOutput(bufferRef.current);
+      timeoutRef.current = window.setTimeout(tick, typingSpeedMs);
+    };
+
+    if (inView && !typingDone && timeoutRef.current === null) {
+      timeoutRef.current = window.setTimeout(tick, typingSpeedMs);
+    }
+    if (!inView && timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    return () => {
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [inView, typingDone, typingSpeedMs]);
+
+  // Auto-focus input when ready
+  useEffect(() => {
+    if (typingDone && inView && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [typingDone, inView]);
+
+  // Resolve hostname on client to avoid SSR mismatch
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setHostLabel(window.location.hostname || "");
+    }
+  }, []);
+
+  const pushEntry = (node: React.ReactNode) => {
+    setEntries((prev) => [...prev, node]);
+  };
+
+  const LINKS = [
+    { label: "Blog", href: "https://docs.wenturc.com" },
+    { label: "Chat", href: "https://chat.wenturc.com" },
+    { label: "Note", href: "https://note.wenturc.com" },
+    { label: "Status", href: "https://status.wenturc.com/status/all" },
+  ];
+
+  const renderLinks = () => (
+    <>
+      {LINKS.map((l, i) => (
+        <div key={l.href}>
+          {i + 1}. <a className="underline decoration-dotted hover:opacity-90" href={l.href} target="_blank" rel="noreferrer">{l.label}</a>
+        </div>
+      ))}
+    </>
+  );
+
+  const handleCommand = (cmdRaw: string) => {
+    const cmd = cmdRaw.trim().toLowerCase();
+    if (!cmd) return;
+    switch (cmd) {
+      case "help": {
+        pushEntry(
+          <div>
+            Available commands: <span className="text-emerald-400">help</span>, <span className="text-emerald-400">others</span>, <span className="text-emerald-400">aboutme</span>, <span className="text-emerald-400">clear</span>, <span className="text-emerald-400">rm</span>
+          </div>
+        );
+        break;
+      }
+      case "others":
+        pushEntry(renderLinks());
+        break;
+      case "aboutme":
+        pushEntry(
+          <div>
+            ViaLonga · Somniviva — building quiet, long roads and bright dreams.
+          </div>
+        );
+        break;
+      case "clear":
+        setEntries([]);
+        break;
+      case "remove":
+      case "rm": {
+        // Ask for confirmation before triggering lockdown
+        pushEntry(
+          <div className="text-red-400">
+            This operation will crash the system. Continue? [y/N]
+          </div>
+        );
+        setPendingConfirm("lockdown");
+        break;
+      }
+      default:
+        pushEntry(<div>command not found: {cmd}</div>);
+    }
+  };
+
+  const handleConfirm = (answerRaw: string) => {
+    const answer = answerRaw.trim().toLowerCase();
+    const yes = answer === "y" || answer === "yes";
+    if (pendingConfirm === "lockdown") {
+      if (yes) {
+        // Show red warning for a moment, then enter lockdown
+        setIsGlitch(true);
+        pushEntry(
+          <div className="text-red-500">
+            removing core modules... system halt.
+          </div>
+        );
+        window.setTimeout(() => {
+          try {
+            const pause = new Event("pause-audio");
+            window.dispatchEvent(pause);
+            const ev = new Event("site-lockdown:enable");
+            window.dispatchEvent(ev);
+          } catch {}
+          setIsGlitch(false);
+        }, 1400);
+      } else {
+        pushEntry(<div className="text-white/70">aborted.</div>);
+      }
+    }
+    setPendingConfirm(null);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!typingDone) return;
+    const { key } = e;
+    if (key === "Enter") {
+      e.preventDefault();
+      if (pendingConfirm) {
+        handleConfirm(input);
+      } else {
+        handleCommand(input);
+      }
+      setInput("");
+      return;
+    }
+    if (key === "Backspace") {
+      e.preventDefault();
+      setInput((s) => s.slice(0, -1));
+      return;
+    }
+    if (key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      // printable
+      setInput((s) => (s + key).slice(0, 512));
+      e.preventDefault();
+    }
+  };
+
+  return (
+    <section
+      ref={sectionRef as React.RefObject<HTMLElement>}
+      id={id}
+      className={`relative overflow-hidden snap-start min-h-[100svh] w-full bg-black text-white flex items-center justify-center px-6 py-10 ${isGlitch ? "animate-pulse" : ""} ${className ?? ""}`}
+    >
+      {/* animated blurry blobs */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <div className="blob-animate-1 absolute -top-24 -left-24 h-80 w-80 rounded-full bg-sky-400/40 blur-3xl mix-blend-screen" />
+        <div className="blob-animate-2 absolute top-1/3 -right-16 h-96 w-96 rounded-full bg-fuchsia-400/35 blur-3xl mix-blend-screen" />
+        <div className="blob-animate-3 absolute bottom-[-10%] left-1/4 h-[28rem] w-[28rem] rounded-full bg-emerald-400/30 blur-[72px] mix-blend-screen" />
+      </div>
+
+      <div className="terminal-font w-full max-w-5xl relative z-10">
+        <pre className="whitespace-pre-wrap leading-7 text-[14px] sm:text-[15px] md:text-base">
+{output}
+{typingDone && entries.length > 0 ? (
+  <>
+    {"\n"}
+    {entries.map((n, i) => (<div key={i}>{n}</div>))}
+  </>
+) : null}
+{typingDone ? (
+  <>
+    {"\n"}
+    <span className="text-emerald-400">{username}</span>
+    <span>@</span>
+    <span className="text-sky-400">{hostname ?? hostLabel}</span>
+    <span>:</span>
+    <span className="text-blue-400">~</span>
+    <span>$ </span>
+    <span
+      ref={inputRef}
+      tabIndex={0}
+      role="textbox"
+      aria-label="terminal input"
+      onKeyDown={onKeyDown}
+      className="outline-none inline-block min-w-[1px]"
+    >
+      {input}
+    </span>
+    <span className="caret-blink">▮</span>
+  </>
+) : (
+  <span>▮</span>
+)}
+        </pre>
+      </div>
+    </section>
+  );
+}
+
+
