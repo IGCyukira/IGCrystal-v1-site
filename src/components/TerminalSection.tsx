@@ -37,7 +37,7 @@ export default function TerminalSection({
   const [inView, setInView] = useState<boolean>(false);
   const contentRef = useRef<string>("");
   const timeoutRef = useRef<number | null>(null);
-  const inputRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [input, setInput] = useState<string>("");
   const [entries, setEntries] = useState<Array<React.ReactNode>>([]);
   const [isGlitch, setIsGlitch] = useState<boolean>(false);
@@ -206,7 +206,7 @@ export default function TerminalSection({
     setPendingConfirm(null);
   };
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!typingDone) return;
     const { key } = e;
     if (key === "Enter") {
@@ -219,16 +219,6 @@ export default function TerminalSection({
       setInput("");
       return;
     }
-    if (key === "Backspace") {
-      e.preventDefault();
-      setInput((s) => s.slice(0, -1));
-      return;
-    }
-    if (key.length === 1 && !e.ctrlKey && !e.metaKey) {
-      // printable
-      setInput((s) => (s + key).slice(0, 512));
-      e.preventDefault();
-    }
   };
 
   return (
@@ -236,6 +226,7 @@ export default function TerminalSection({
       ref={sectionRef as React.RefObject<HTMLElement>}
       id={id}
       className={`relative overflow-hidden snap-start min-h-[100svh] w-full bg-black text-white flex items-center justify-center px-6 py-10 ${isGlitch ? "animate-pulse" : ""} ${className ?? ""}`}
+      onClick={() => { try { inputRef.current?.focus(); } catch {} }}
     >
       {/* animated blurry blobs */}
       <div className="pointer-events-none absolute inset-0 z-0">
@@ -256,23 +247,26 @@ export default function TerminalSection({
 {typingDone ? (
   <>
     {"\n"}
-    <span className="text-emerald-400">{username}</span>
-    <span>@</span>
-    <span className="text-sky-400">{hostname ?? hostLabel}</span>
-    <span>:</span>
-    <span className="text-blue-400">~</span>
-    <span>$ </span>
-    <span
-      ref={inputRef}
-      tabIndex={0}
-      role="textbox"
-      aria-label="terminal input"
-      onKeyDown={onKeyDown}
-      className="outline-none inline-block min-w-[1px]"
-    >
-      {input}
-    </span>
-    <span className="caret-blink">▮</span>
+    <div className="flex flex-nowrap items-center gap-0 whitespace-nowrap break-normal overflow-x-auto max-w-full">
+      <span className="text-emerald-400">{username}</span>
+      <span>@</span>
+      <span className="text-sky-400">{hostname ?? hostLabel}</span>
+      <span>:</span>
+      <span className="text-blue-400">~</span>
+      <span>$ </span>
+      <input
+        ref={inputRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value.slice(0, 512))}
+        onKeyDown={onKeyDown}
+        aria-label="terminal input"
+        inputMode="text"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        className="outline-none inline-block min-w-[1px] bg-transparent border-0 p-0 m-0 text-inherit w-auto shrink-0"
+      />
+    </div>
   </>
 ) : (
   <span>▮</span>
@@ -282,5 +276,3 @@ export default function TerminalSection({
     </section>
   );
 }
-
-
