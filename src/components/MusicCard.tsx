@@ -9,6 +9,7 @@ export type MusicCardProps = {
   playlistUrl?: string;
   streamingBaseUrl?: string;
   animate?: boolean;
+  defaultArtwork?: string | string[]; // fallback images under /public, e.g. ["/img/cover.png"]
 };
 
 type TrackInfo = {
@@ -18,6 +19,7 @@ type TrackInfo = {
   originalFile?: string;
   hasHLS?: boolean;
   hlsUrl?: string; // e.g. "/path/to/track.m3u8"
+  cover?: string; // optional artwork url
 };
 
 type PlaylistResponse = {
@@ -46,6 +48,7 @@ export default function MusicCard({
   playlistUrl = "https://hls.wenturc.com/playlist.json",
   streamingBaseUrl = "https://hls.wenturc.com",
   animate = true,
+  defaultArtwork,
 }: MusicCardProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -267,6 +270,117 @@ export default function MusicCard({
   }, [duration]);
 
   // (moved earlier)
+
+  // Media Session API: show lockscreen/notification controls and wire actions
+  useEffect(() => {
+    const ms = (navigator as Navigator & { mediaSession?: MediaSession }).mediaSession;
+    if (!ms || typeof ms.setActionHandler !== "function") return;
+
+    const onPlay = () => { if (!isPlaying) togglePlay(); };
+    const onPause = () => { if (isPlaying) togglePlay(); };
+    const onPrev = () => { handlePrev(); };
+    const onNext = () => { handleNext(); };
+    const onStop = () => {
+      const media = audioRef.current;
+      if (media) {
+        try { media.pause(); } catch {}
+        try { media.currentTime = 0; } catch {}
+      }
+      setIsPlaying(false);
+    };
+    const onSeekTo = (details: MediaSessionActionDetails) => {
+      if (!details || typeof details.seekTime !== "number") return;
+      const media = audioRef.current;
+      const dur = duration || 0;
+      const nextPos = Math.max(0, Math.min(dur, details.seekTime));
+      if (media) {
+        media.currentTime = nextPos;
+      }
+      setCurrentTime(nextPos);
+    };
+    const onSeekBackward = (details: MediaSessionActionDetails) => {
+      const step = (details && details.seekOffset) || 10;
+      const media = audioRef.current;
+      if (media) {
+        const nextPos = Math.max(0, media.currentTime - step);
+        media.currentTime = nextPos;
+        setCurrentTime(nextPos);
+      }
+    };
+    const onSeekForward = (details: MediaSessionActionDetails) => {
+      const step = (details && details.seekOffset) || 10;
+      const media = audioRef.current;
+      const dur = duration || Number.POSITIVE_INFINITY;
+      if (media) {
+        const nextPos = Math.min(dur, media.currentTime + step);
+        media.currentTime = nextPos;
+        setCurrentTime(nextPos);
+      }
+    };
+
+    try { ms.setActionHandler("play", onPlay); } catch {}
+    try { ms.setActionHandler("pause", onPause); } catch {}
+    try { ms.setActionHandler("previoustrack", onPrev); } catch {}
+    try { ms.setActionHandler("nexttrack", onNext); } catch {}
+    try { ms.setActionHandler("stop", onStop); } catch {}
+    try { ms.setActionHandler("seekto", onSeekTo); } catch {}
+    try { ms.setActionHandler("seekbackward", onSeekBackward); } catch {}
+    try { ms.setActionHandler("seekforward", onSeekForward); } catch {}
+
+    return () => {
+      try { ms.setActionHandler("play", null); } catch {}
+      try { ms.setActionHandler("pause", null); } catch {}
+      try { ms.setActionHandler("previoustrack", null); } catch {}
+      try { ms.setActionHandler("nexttrack", null); } catch {}
+      try { ms.setActionHandler("stop", null); } catch {}
+      try { ms.setActionHandler("seekto", null); } catch {}
+      try { ms.setActionHandler("seekbackward", null); } catch {}
+      try { ms.setActionHandler("seekforward", null); } catch {}
+    };
+  }, [togglePlay, handlePrev, handleNext, duration, isPlaying]);
+
+  // Update metadata when track/label changes
+  useEffect(() => {
+    const ms = (navigator as Navigator & { mediaSession?: MediaSession }).mediaSession;
+    if (!ms) return;
+    try {
+      const parts = (currentLabel || "").split(" - ");
+      const metaTitle = parts[0] || "未知歌曲";
+      const metaArtist = parts.slice(1).join(" - ") || "未知艺术家";
+      const artwork: MediaImage[] = [];
+      if (currentTrack?.cover) {
+        artwork.push({ src: currentTrack.cover, sizes: "512x512" });
+      }
+      const defaults = Array.isArray(defaultArtwork) ? defaultArtwork : (defaultArtwork ? [defaultArtwork] : []);
+      for (const img of defaults) {
+        artwork.push({ src: img });
+      }
+      artwork.push({ src: "/logo.webp", sizes: "512x512", type: "image/webp" });
+      artwork.push({ src: "/logo.svg", sizes: "512x512", type: "image/svg+xml" });
+      if (typeof MediaMetadata !== "undefined") {
+        ms.metadata = new MediaMetadata({
+          title: metaTitle,
+          artist: metaArtist,
+          album: "IGCrystal",
+          artwork,
+        });
+      }
+    } catch {}
+  }, [currentLabel, currentTrack, defaultArtwork]);
+
+  // Keep playback state and position in sync for platforms that support it
+  useEffect(() => {
+    const ms = (navigator as Navigator & { mediaSession?: MediaSession }).mediaSession;
+    if (!ms) return;
+    try {
+      ms.playbackState = isPlaying ? "playing" : "paused";
+    } catch {}
+    try {
+      if (typeof ms.setPositionState === "function" && duration && duration > 0) {
+        ms.setPositionState({ duration, position: currentTime || 0, playbackRate: 1 });
+      }
+    } catch {}
+  }, [isPlaying, currentTime, duration]);
 
   return (
     <div
