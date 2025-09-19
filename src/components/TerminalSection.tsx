@@ -121,7 +121,7 @@ export default function TerminalSection({
   };
 
   const LINKS = [
-    { label: "Blog", href: "https://docs.wenturc.com" },
+    { label: "Blog", href: "https://blog.igcrystal.icu" },
     { label: "Chat", href: "https://chat.wenturc.com" },
     { label: "Note", href: "https://note.wenturc.com" },
     { label: "Status", href: "https://status.wenturc.com/status/all" },
