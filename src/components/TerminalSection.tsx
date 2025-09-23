@@ -120,6 +120,22 @@ export default function TerminalSection({
     setEntries((prev) => [...prev, node]);
   };
 
+  // Skip typing animation: immediately render all content
+  const skipTyping = () => {
+    if (typingDone) return;
+    try {
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      const full = contentRef.current;
+      bufferRef.current = full;
+      idxRef.current = full.length;
+      setOutput(full);
+      setTypingDone(true);
+    } catch {}
+  };
+
   const LINKS = [
     { label: "Blog", href: "https://blog.igcrystal.icu" },
     { label: "Chat", href: "https://chat.wenturc.com" },
@@ -227,6 +243,17 @@ export default function TerminalSection({
       id={id}
       className={`relative overflow-hidden snap-start min-h-[100svh] w-full bg-black text-white flex items-center justify-center px-6 py-10 ${isGlitch ? "animate-pulse" : ""} ${className ?? ""}`}
       onClick={() => { try { inputRef.current?.focus(); } catch {} }}
+      onKeyDown={(e) => {
+        if (!typingDone) {
+          const k = e.key;
+          if (!["Shift", "Control", "Alt", "Meta"].includes(k)) {
+            e.preventDefault();
+            skipTyping();
+            requestAnimationFrame(() => { try { inputRef.current?.focus(); } catch {} });
+          }
+        }
+      }}
+      tabIndex={-1}
     >
       {/* animated blurry blobs */}
       <div className="pointer-events-none absolute inset-0 z-0">
