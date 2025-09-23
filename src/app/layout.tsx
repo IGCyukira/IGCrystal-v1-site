@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://wenturc.com"),
+  metadataBase: new URL("https://IGcrystal.icu"),
   title: {
     default: "IGCrystal · ViaLonga Somniviva",
     template: "%s · IGCrystal",
