@@ -397,8 +397,11 @@ export default function MusicCard({
       for (const img of defaults) {
         artwork.push({ src: img });
       }
-      artwork.push({ src: "/logo.webp", sizes: "512x512", type: "image/webp" });
-      artwork.push({ src: "/logo.svg", sizes: "512x512", type: "image/svg+xml" });
+      
+      artwork.push({ src: "/img/artist.webp", sizes: "957x957", type: "image/webp" });
+      artwork.push({ src: "/img/artist.jpg", sizes: "957x957", type: "image/jpg" });
+      artwork.push({ src: "/img/artist.png", sizes: "957x957", type: "image/png" });
+
       if (typeof MediaMetadata !== "undefined") {
         ms.metadata = new MediaMetadata({
           title: metaTitle,
