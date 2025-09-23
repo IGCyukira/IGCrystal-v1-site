@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2, Shuffle, ListOrdered } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2, Shuffle, ListOrdered, Repeat } from "lucide-react";
 
 export type MusicCardProps = {
   className?: string;
@@ -63,6 +63,9 @@ export default function MusicCard({
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [randomMode, setRandomMode] = useState<boolean>(false);
+  const [loopOne, setLoopOne] = useState<boolean>(false); 
+  const endedHandledRef = useRef<boolean>(false);
+  const lastTrackUrlRef = useRef<string | null>(null);
   const [mounted, setMounted] = useState<boolean>(false);
 
   useEffect(() => {
@@ -84,7 +87,6 @@ export default function MusicCard({
     return null;
   }, [currentTrack, streamingBaseUrl]);
 
-  // Controls that do not depend on DOM listeners should be defined early
   const getRandomIndex = useCallback((exclude: number) => {
     if (tracks.length <= 1) return 0;
     const pool: number[] = Array.from({ length: tracks.length }, (_, i) => i).filter((i) => i !== exclude);
@@ -160,17 +162,16 @@ export default function MusicCard({
               default:
                 instance.destroy();
                 hlsRef.current = null;
+                loadedUrlRef.current = null; // 允许重新加载同一 URL，防止卡死
                 break;
             }
           } catch {
-            // ignore
           }
         }
       });
       return;
     }
 
-    // Native HLS (Safari)
     media.src = url;
     loadedUrlRef.current = url;
   }, []);
@@ -178,13 +179,14 @@ export default function MusicCard({
   const loadCurrent = useCallback(() => {
     const media = audioRef.current;
     if (!media || !currentHlsUrl) return;
-
-    // 仅当目标 URL 变化时才切换源，避免重置进度
     if (loadedUrlRef.current !== currentHlsUrl) {
       attachHls(media, currentHlsUrl);
+      // 新曲目强制进度归零（避免偶发 currentTime 残留）
+      try { media.currentTime = 0; } catch {}
+      endedHandledRef.current = false;
+      lastTrackUrlRef.current = currentHlsUrl;
     }
 
-    // 不主动播放，保持暂停位置；仅当处于播放态时才恢复
     if (isPlaying) {
       media.play().catch(() => setIsPlaying(false));
     }
@@ -205,7 +207,20 @@ export default function MusicCard({
     if (!media) return;
     const onTime = () => setCurrentTime(media.currentTime || 0);
     const onMeta = () => setDuration(isNaN(media.duration) ? 0 : media.duration);
-    const onEnd = () => handleNext();
+    const onEnd = () => {
+      if (endedHandledRef.current) return;
+      endedHandledRef.current = true;
+      if (loopOne) {
+        try {
+          media.currentTime = 0;
+          const p = media.play();
+          if (p && typeof p.then === "function") p.catch(() => {});
+          endedHandledRef.current = false; // 允许再次结束
+        } catch {}
+      } else {
+        handleNext();
+      }
+    };
 
     media.addEventListener("timeupdate", onTime);
     media.addEventListener("loadedmetadata", onMeta);
@@ -215,7 +230,40 @@ export default function MusicCard({
       media.removeEventListener("loadedmetadata", onMeta);
       media.removeEventListener("ended", onEnd);
     };
-  }, [handleNext]);
+  }, [handleNext, loopOne]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const media = audioRef.current;
+    if (!media) return;
+    const id = window.setInterval(() => {
+      if (!media.duration || media.duration === Infinity) return;
+      if (media.paused) return;
+      const remain = media.duration - media.currentTime;
+      if (remain < 0.35 && !endedHandledRef.current) {
+        // 模拟结束
+        if (loopOne) {
+          endedHandledRef.current = true;
+          try {
+            media.currentTime = 0;
+            const p = media.play();
+            if (p && typeof p.then === 'function') p.catch(() => {});
+            endedHandledRef.current = false;
+          } catch {}
+        } else {
+            endedHandledRef.current = true;
+            handleNext();
+        }
+      }
+    }, 500);
+    return () => { window.clearInterval(id); };
+  }, [isPlaying, loopOne, handleNext]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.loop = false; 
+    }
+  }, [loopOne]);
 
   useEffect(() => {
     const mediaAtMount = audioRef.current;
@@ -246,7 +294,6 @@ export default function MusicCard({
       media.pause();
       setIsPlaying(false);
     } else {
-      // 若源未加载（首次或切歌），先加载源，但不要重置 currentTime
       if (!loadedUrlRef.current) {
         loadCurrent();
       }
@@ -269,9 +316,6 @@ export default function MusicCard({
     setCurrentTime(nextTime);
   }, [duration]);
 
-  // (moved earlier)
-
-  // Media Session API: show lockscreen/notification controls and wire actions
   useEffect(() => {
     const ms = (navigator as Navigator & { mediaSession?: MediaSession }).mediaSession;
     if (!ms || typeof ms.setActionHandler !== "function") return;
@@ -339,7 +383,6 @@ export default function MusicCard({
     };
   }, [togglePlay, handlePrev, handleNext, duration, isPlaying]);
 
-  // Update metadata when track/label changes
   useEffect(() => {
     const ms = (navigator as Navigator & { mediaSession?: MediaSession }).mediaSession;
     if (!ms) return;
@@ -368,7 +411,6 @@ export default function MusicCard({
     } catch {}
   }, [currentLabel, currentTrack, defaultArtwork]);
 
-  // Keep playback state and position in sync for platforms that support it
   useEffect(() => {
     const ms = (navigator as Navigator & { mediaSession?: MediaSession }).mediaSession;
     if (!ms) return;
@@ -443,6 +485,15 @@ export default function MusicCard({
             title={randomMode ? "随机播放: 开" : "随机播放: 关"}
           >
             {randomMode ? <Shuffle size={16} /> : <ListOrdered size={16} />}
+          </button>
+          <button
+            type="button"
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-black/5 dark:hover:bg-white/10 ${loopOne ? "ring-1 ring-black/15 dark:ring-white/20" : ""}`}
+            onClick={() => setLoopOne(v => !v)}
+            aria-label={loopOne ? "关闭单曲循环" : "开启单曲循环"}
+            title={loopOne ? "单曲循环: 开" : "单曲循环: 关"}
+          >
+            <Repeat size={16} />
           </button>
         </div>
 
