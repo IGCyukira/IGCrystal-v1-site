@@ -121,7 +121,7 @@ export default function LockdownOverlay() {
       window.removeEventListener("site-lockdown:enable", onEnable);
       window.removeEventListener("site-lockdown:disable", onDisable);
     };
-  }, []);
+  }, [computeSnakePopups]);
 
   useEffect(() => {
     if (!locked) return;
