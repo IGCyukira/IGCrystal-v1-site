@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
-/* Optional local font for the clock overlay. Replace the file name if different. */
+/* ============================================
+   FONT DEFINITIONS
+   ============================================ */
+
+/* Clock & UI Font */
 @font-face {
   font-family: "LoginClockV2";
   src: url("/font/InterVariable.woff2") format("woff2");
@@ -9,31 +13,120 @@
   font-display: swap;
 }
 
+/* Terminal/Console Font */
+@font-face {
+  font-family: "ConsolasLocal";
+  src: url("/font/Consolas.woff") format("woff2"), url("/font/Consolas.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITIES
+   ============================================ */
+
 .clock-font {
   font-family: "LoginClockV2", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-/* Modern colon blink for clock */
-.colon-pulse {
-  display: inline-block;
-  animation: colonBlink 1.2s infinite;
+.terminal-font {
+  font-family: "ConsolasLocal", Consolas, "Courier New", ui-monospace, monospace;
 }
 
+/* ============================================
+   GLOBAL SCROLLBAR & SCROLL BEHAVIOR
+   ============================================ */
+
+/* Enhanced smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbars globally but keep scrolling */
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;    
+}
+*::-webkit-scrollbar {
+  display: none;           
+  width: 0;
+  height: 0;
+}
+
+/* Smooth scroll snap with better timing */
+.snap-y {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scroll snap timing using scroll-timeline (experimental but progressive enhancement) */
+@supports (scroll-timeline: --scroll) {
+  .snap-y {
+    scroll-timeline: --scroll;
+  }
+}
+
+/* Fallback: Use JavaScript scroll polyfill class for browsers that need it */
+.enhanced-scroll {
+  transition: scroll-top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Add momentum and easing to touch scrolling */
+@media (hover: none) and (pointer: coarse) {
+  .snap-y {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* ============================================
+   ANIMATION KEYFRAMES
+   ============================================ */
+
+/* Clock animations */
 @keyframes colonBlink {
   0%, 60% { opacity: 1; }
   70%, 100% { opacity: 0.2; }
 }
 
-/* Terminal caret blink (on/off, not breathing) */
+/* Terminal animations */
 @keyframes caretBlink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
 }
-.caret-blink {
-  animation: caretBlink 1s steps(1, end) infinite;
+
+/* Background blob animations */
+@keyframes blobFloat1 {
+  0%, 100% { transform: translate3d(-12%, -8%, 0) scale(1); }
+  33% { transform: translate3d(8%, -2%, 0) scale(1.08); }
+  66% { transform: translate3d(-4%, 10%, 0) scale(0.96); }
+}
+@keyframes blobFloat2 {
+  0%, 100% { transform: translate3d(10%, 6%, 0) scale(1); }
+  25% { transform: translate3d(-6%, 4%, 0) scale(1.06); }
+  50% { transform: translate3d(6%, -8%, 0) scale(0.94); }
+  75% { transform: translate3d(-2%, 2%, 0) scale(1.02); }
+}
+@keyframes blobFloat3 {
+  0%, 100% { transform: translate3d(-6%, 12%, 0) scale(1); }
+  40% { transform: translate3d(12%, -6%, 0) scale(1.05); }
+  80% { transform: translate3d(-10%, -4%, 0) scale(0.97); }
 }
 
-/* Lockdown glitch + scanlines */
+/* Entrance/transition animations */
+@keyframes fadeInScaleSoft {
+  0% { opacity: 0; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeInOverlay {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Glitch & corruption effects */
 @keyframes glitchShake {
   0% { transform: translate3d(0, 0, 0); }
   20% { transform: translate3d(1px, -1px, 0); }
@@ -42,11 +135,98 @@
   80% { transform: translate3d(-1px, -1px, 0); }
   100% { transform: translate3d(0, 0, 0); }
 }
-.lockdown-glitch { animation: glitchShake 600ms steps(2, end) infinite; }
+
+@keyframes basicShake {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-1px, 1px, 0); }
+  50% { transform: translate3d(1px, -1px, 0); }
+  75% { transform: translate3d(-1px, -1px, 0); }
+  100% { transform: translate3d(1px, 1px, 0); }
+}
+
+@keyframes lineGlitch {
+  0% { transform: translateX(var(--offset, 0)); }
+  25% { transform: translateX(calc(var(--offset, 0) + 1px)); }
+  50% { transform: translateX(calc(var(--offset, 0) - 1px)); }
+  75% { transform: translateX(calc(var(--offset, 0) + 2px)); }
+  100% { transform: translateX(var(--offset, 0)); }
+}
+
+/* Scanline effects */
+@keyframes scanScroll {
+  0%   { background-position: 0 0, 0 0, 0 -20%; }
+  100% { background-position: 0 6px, 0 3px, 0 200%; }
+}
+
+@keyframes scanFlicker {
+  0%   { opacity: 0.88; }
+  5%   { opacity: 0.94; }
+  10%  { opacity: 0.82; }
+  15%  { opacity: 0.97; }
+  20%  { opacity: 0.78; }
+  30%  { opacity: 1; }
+  45%  { opacity: 0.86; }
+  60%  { opacity: 0.93; }
+  75%  { opacity: 0.80; }
+  90%  { opacity: 0.90; }
+  100% { opacity: 0.88; }
+}
+
+/* XP popup animations */
+@keyframes popupAppear {
+  0% { opacity: 0; transform: scale(0) rotate(6deg); }
+  60% { transform: scale(1.06) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes popupGlitch {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(1px, 1px); }
+  50% { transform: translate(-1px, -1px); }
+  75% { transform: translate(2px, 0); }
+  100% { transform: translate(0, 0); }
+}
+
+/* ============================================
+   COMPONENT CLASSES
+   ============================================ */
+
+/* Clock components */
+.colon-pulse {
+  display: inline-block;
+  animation: colonBlink 1.2s infinite;
+}
+
+/* Terminal components */
+.caret-blink {
+  animation: caretBlink 1s steps(1, end) infinite;
+}
+
+/* Background blobs */
+.blob-animate-1 { animation: blobFloat1 24s ease-in-out infinite; }
+.blob-animate-2 { animation: blobFloat2 28s ease-in-out infinite; }
+.blob-animate-3 { animation: blobFloat3 32s ease-in-out infinite; }
+
+/* Entrance animations */
+.animate-fade-in-scale-soft {
+  animation: fadeInScaleSoft 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-in-overlay {
+  animation: fadeInOverlay 600ms ease-out both;
+}
+
+/* ============================================
+   LOCKDOWN & GLITCH EFFECTS
+   ============================================ */
+
+.lockdown-glitch { 
+  animation: glitchShake 600ms steps(2, end) infinite; 
+}
+
 .lockdown-scanlines {
   position: absolute;
   inset: 0;
-  /* 更明显的双色扫描线 + 一条扫过的亮带 */
   background-image:
     /* 青绿色主线（更粗） */
     repeating-linear-gradient(
@@ -78,27 +258,12 @@
   z-index: 2147483000;
 }
 
-@keyframes scanScroll {
-  0%   { background-position: 0 0, 0 0, 0 -20%; }
-  100% { background-position: 0 6px, 0 3px, 0 200%; }
+.corruption-text {
+  position: relative;
+  display: inline-block;
+  animation: basicShake 0.1s linear infinite;
 }
 
-/* 闪烁：模拟老显示器随机亮度跳变 */
-@keyframes scanFlicker {
-  0%   { opacity: 0.88; }
-  5%   { opacity: 0.94; }
-  10%  { opacity: 0.82; }
-  15%  { opacity: 0.97; }
-  20%  { opacity: 0.78; }
-  30%  { opacity: 1; }
-  45%  { opacity: 0.86; }
-  60%  { opacity: 0.93; }
-  75%  { opacity: 0.80; }
-  90%  { opacity: 0.90; }
-  100% { opacity: 0.88; }
-}
-
-/* 多行错位崩坏效果 */
 .corrupted-lines {
   position: relative;
   display: block;
@@ -161,30 +326,10 @@
   animation-delay: 0.18s;
 }
 
-@keyframes lineGlitch {
-  0% { transform: translateX(var(--offset, 0)); }
-  25% { transform: translateX(calc(var(--offset, 0) + 1px)); }
-  50% { transform: translateX(calc(var(--offset, 0) - 1px)); }
-  75% { transform: translateX(calc(var(--offset, 0) + 2px)); }
-  100% { transform: translateX(var(--offset, 0)); }
-}
+/* ============================================
+   WINDOWS XP POPUP EFFECTS
+   ============================================ */
 
-/* 简化的基础崩坏效果 */
-.corruption-text {
-  position: relative;
-  display: inline-block;
-  animation: basicShake 0.1s linear infinite;
-}
-
-@keyframes basicShake {
-  0% { transform: translate3d(0, 0, 0); }
-  25% { transform: translate3d(-1px, 1px, 0); }
-  50% { transform: translate3d(1px, -1px, 0); }
-  75% { transform: translate3d(-1px, -1px, 0); }
-  100% { transform: translate3d(1px, 1px, 0); }
-}
-
-/* Windows XP 弹窗叠加效果 */
 .xp-popup {
   position: absolute;
   width: 320px;
@@ -234,118 +379,25 @@
   font-size: 16px;
 }
 
-.popup-dynamic { opacity: 0; transform: scale(0) rotate(6deg); }
-
-@keyframes popupAppear {
-  0% { opacity: 0; transform: scale(0) rotate(6deg); }
-  60% { transform: scale(1.06) rotate(-3deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+.popup-dynamic { 
+  opacity: 0; 
+  transform: scale(0) rotate(6deg); 
 }
 
-@keyframes popupGlitch {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(1px, 1px); }
-  50% { transform: translate(-1px, -1px); }
-  75% { transform: translate(2px, 0); }
-  100% { transform: translate(0, 0); }
-}
-
-/* Terminal font */
-@font-face {
-  font-family: "ConsolasLocal";
-  src: url("/font/Consolas.woff") format("woff2"), url("/font/Consolas.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-.terminal-font {
-  font-family: "ConsolasLocal", Consolas, "Courier New", ui-monospace, monospace;
-}
-
-/* Animated blurry blobs for terminal background */
-@keyframes blobFloat1 {
-  0%, 100% { transform: translate3d(-12%, -8%, 0) scale(1); }
-  33% { transform: translate3d(8%, -2%, 0) scale(1.08); }
-  66% { transform: translate3d(-4%, 10%, 0) scale(0.96); }
-}
-@keyframes blobFloat2 {
-  0%, 100% { transform: translate3d(10%, 6%, 0) scale(1); }
-  25% { transform: translate3d(-6%, 4%, 0) scale(1.06); }
-  50% { transform: translate3d(6%, -8%, 0) scale(0.94); }
-  75% { transform: translate3d(-2%, 2%, 0) scale(1.02); }
-}
-@keyframes blobFloat3 {
-  0%, 100% { transform: translate3d(-6%, 12%, 0) scale(1); }
-  40% { transform: translate3d(12%, -6%, 0) scale(1.05); }
-  80% { transform: translate3d(-10%, -4%, 0) scale(0.97); }
-}
-
-.blob-animate-1 { animation: blobFloat1 24s ease-in-out infinite; }
-.blob-animate-2 { animation: blobFloat2 28s ease-in-out infinite; }
-.blob-animate-3 { animation: blobFloat3 32s ease-in-out infinite; }
+/* ============================================
+   ACCESSIBILITY & PERFORMANCE
+   ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  .blob-animate-1, .blob-animate-2, .blob-animate-3 { animation: none; }
-}
-
-/* Entrance animations */
-@keyframes fadeInScaleSoft {
-  0% { opacity: 0; transform: scale(1.04); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-.animate-fade-in-scale-soft {
-  animation: fadeInScaleSoft 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes fadeInOverlay {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-.animate-fade-in-overlay {
-  animation: fadeInOverlay 600ms ease-out both;
-}
-
-/* Enhanced smooth scroll behavior */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Smooth scroll snap with better timing */
-.snap-y {
-  scroll-behavior: smooth;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Custom scroll snap timing using scroll-timeline (experimental but progressive enhancement) */
-@supports (scroll-timeline: --scroll) {
-  .snap-y {
-    scroll-timeline: --scroll;
+  .blob-animate-1, 
+  .blob-animate-2, 
+  .blob-animate-3,
+  .colon-pulse,
+  .caret-blink,
+  .lockdown-glitch,
+  .lockdown-scanlines,
+  .corruption-text,
+  .corrupted-lines .line {
+    animation: none;
   }
-}
-
-/* Fallback: Use JavaScript scroll polyfill class for browsers that need it */
-.enhanced-scroll {
-  transition: scroll-top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-/* Add momentum and easing to touch scrolling */
-@media (hover: none) and (pointer: coarse) {
-  .snap-y {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
-}
-
-/* Hide scrollbars globally but keep scrolling */
-* {
-  -ms-overflow-style: none; /* IE 10+ and Edge legacy */
-  scrollbar-width: none;    /* Firefox */
-}
-*::-webkit-scrollbar {
-  display: none;            /* Chrome, Safari, newer Edge */
-  width: 0;
-  height: 0;
 }
