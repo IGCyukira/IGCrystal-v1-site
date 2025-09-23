@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatTime } from "@/lib/time";
 import Hls from "hls.js";
 import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2, Shuffle, ListOrdered, Repeat } from "lucide-react";
 
@@ -9,7 +10,7 @@ export type MusicCardProps = {
   playlistUrl?: string;
   streamingBaseUrl?: string;
   animate?: boolean;
-  defaultArtwork?: string | string[]; // fallback images under /public, e.g. ["/img/cover.png"]
+  defaultArtwork?: string | string[];
 };
 
 type TrackInfo = {
@@ -18,8 +19,8 @@ type TrackInfo = {
   filename?: string;
   originalFile?: string;
   hasHLS?: boolean;
-  hlsUrl?: string; // e.g. "/path/to/track.m3u8"
-  cover?: string; // optional artwork url
+  hlsUrl?: string;
+  cover?: string;
 };
 
 type PlaylistResponse = {
@@ -162,7 +163,7 @@ export default function MusicCard({
               default:
                 instance.destroy();
                 hlsRef.current = null;
-                loadedUrlRef.current = null; // 允许重新加载同一 URL，防止卡死
+                loadedUrlRef.current = null; 
                 break;
             }
           } catch {
@@ -181,7 +182,6 @@ export default function MusicCard({
     if (!media || !currentHlsUrl) return;
     if (loadedUrlRef.current !== currentHlsUrl) {
       attachHls(media, currentHlsUrl);
-      // 新曲目强制进度归零（避免偶发 currentTime 残留）
       try { media.currentTime = 0; } catch {}
       endedHandledRef.current = false;
       lastTrackUrlRef.current = currentHlsUrl;
@@ -215,7 +215,7 @@ export default function MusicCard({
           media.currentTime = 0;
           const p = media.play();
           if (p && typeof p.then === "function") p.catch(() => {});
-          endedHandledRef.current = false; // 允许再次结束
+          endedHandledRef.current = false; 
         } catch {}
       } else {
         handleNext();
@@ -241,7 +241,6 @@ export default function MusicCard({
       if (media.paused) return;
       const remain = media.duration - media.currentTime;
       if (remain < 0.35 && !endedHandledRef.current) {
-        // 模拟结束
         if (loopOne) {
           endedHandledRef.current = true;
           try {
@@ -523,11 +522,3 @@ export default function MusicCard({
     </div>
   );
 }
-
-function formatTime(seconds: number | undefined): string {
-  if (!seconds || Number.isNaN(seconds)) return "0:00";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60).toString().padStart(2, "0");
-  return `${mins}:${secs}`;
-}
-

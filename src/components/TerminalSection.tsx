@@ -46,7 +46,6 @@ export default function TerminalSection({
   const [hostLabel, setHostLabel] = useState<string>("");
   const [pendingConfirm, setPendingConfirm] = useState<null | "lockdown">(null);
 
-  // Observe visibility to start typing when this section comes into view
   useEffect(() => {
     const el = sectionRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
@@ -61,17 +60,14 @@ export default function TerminalSection({
     return () => io.disconnect();
   }, []);
 
-  // Build content when lines change and reset typing state
   useEffect(() => {
     contentRef.current = lines.join("\n") + "\n";
     idxRef.current = 0;
     bufferRef.current = "";
     setOutput("");
     setTypingDone(false);
-    // do not auto-start; wait for inView scheduler
   }, [lines]);
 
-  // Scheduler: pause/resume typing based on visibility
   useEffect(() => {
     const tick = () => {
       const all = contentRef.current;
@@ -102,14 +98,12 @@ export default function TerminalSection({
     };
   }, [inView, typingDone, typingSpeedMs]);
 
-  // Auto-focus input when ready
   useEffect(() => {
     if (typingDone && inView && inputRef.current) {
       inputRef.current.focus();
     }
   }, [typingDone, inView]);
 
-  // Resolve hostname on client to avoid SSR mismatch
   useEffect(() => {
     if (typeof window !== "undefined") {
       setHostLabel(window.location.hostname || "");
@@ -120,7 +114,6 @@ export default function TerminalSection({
     setEntries((prev) => [...prev, node]);
   };
 
-  // Skip typing animation: immediately render all content
   const skipTyping = () => {
     if (typingDone) return;
     try {
@@ -180,7 +173,6 @@ export default function TerminalSection({
         break;
       case "remove":
       case "rm": {
-        // Ask for confirmation before triggering lockdown
         pushEntry(
           <div className="text-red-400">
             This operation will crash the system. Continue? [y/N]
@@ -199,7 +191,6 @@ export default function TerminalSection({
     const yes = answer === "y" || answer === "yes";
     if (pendingConfirm === "lockdown") {
       if (yes) {
-        // Show red warning for a moment, then enter lockdown
         setIsGlitch(true);
         pushEntry(
           <div className="text-red-500">

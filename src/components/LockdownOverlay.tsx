@@ -16,8 +16,6 @@ export default function LockdownOverlay() {
 
   const basePopupWidth = 320;
   const basePopupHeight = 140;
-
-  // 从中心出发的“随机游走 + 小角度转向 + 边界反射”，直到覆盖率达阈值
   const computeSnakePopups = useCallback(() => {
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
@@ -32,7 +30,6 @@ export default function LockdownOverlay() {
       height: number;
     }> = [];
 
-    // 覆盖估算网格（粗网格，避免过细导致性能差）
     const coarseCellW = Math.max(72, Math.floor(basePopupWidth * 0.7));
     const coarseCellH = Math.max(60, Math.floor(basePopupHeight * 0.7));
     const coarseCols = Math.max(1, Math.ceil(screenWidth / coarseCellW));
@@ -45,16 +42,14 @@ export default function LockdownOverlay() {
       visited.add(`${cx}:${cy}`);
     };
 
-    // 初始位置居中，初始方向随机但非轴向
     let x = Math.max(0, Math.floor((screenWidth - basePopupWidth) / 2));
     let y = Math.max(0, Math.floor((screenHeight - basePopupHeight) / 2));
     let angle = Math.random() * Math.PI * 2; // 0-360°
     angle += (Math.random() - 0.5) * (Math.PI / 6); // +-30° 偏移，避免过于规则
 
-    // 步长：小于尺寸，产生叠加
     const step = Math.max(24, Math.floor(Math.min(basePopupWidth, basePopupHeight) * 0.55));
     let z = 3000;
-    const maxCount = 2600; // 安全上限
+    const maxCount = 2600; 
 
     for (let i = 0; i < maxCount; i++) {
       const top = Math.max(0, Math.min(screenHeight - basePopupHeight, Math.round(y)));
@@ -71,22 +66,19 @@ export default function LockdownOverlay() {
       });
       markVisited(left, top);
 
-      // 小角度扰动，增强自然感
       angle += (Math.random() - 0.5) * (Math.PI / 24); // +-7.5°
 
-      // 下一步坐标
       let nextX = x + Math.cos(angle) * step;
       let nextY = y + Math.sin(angle) * step;
-
       let bounced = false;
-      // 碰撞左右边界：水平反射
+
       if (nextX < 0 || nextX + basePopupWidth > screenWidth) {
         angle = Math.PI - angle + (Math.random() - 0.5) * (Math.PI / 18); // +-10°
         nextX = x + Math.cos(angle) * step;
         nextY = y + Math.sin(angle) * step;
         bounced = true;
       }
-      // 碰撞上下边界：垂直反射
+
       if (nextY < 0 || nextY + basePopupHeight > screenHeight) {
         angle = -angle + (Math.random() - 0.5) * (Math.PI / 18);
         nextX = x + Math.cos(angle) * step;
@@ -94,7 +86,6 @@ export default function LockdownOverlay() {
         bounced = true;
       }
 
-      // 轻微抖动，避免规则折线
       if (bounced) {
         angle += (Math.random() - 0.5) * (Math.PI / 12); // +-15°
       }
@@ -103,7 +94,7 @@ export default function LockdownOverlay() {
       y = nextY;
 
       const covered = visited.size / totalCells;
-      if (covered >= 0.92) break; // 达到覆盖阈值
+      if (covered >= 0.92) break; 
     }
 
     return positions;
@@ -132,7 +123,6 @@ export default function LockdownOverlay() {
     };
   }, []);
 
-  // 锁定时监听窗口尺寸变化，保持铺满
   useEffect(() => {
     if (!locked) return;
     const onResize = () => { try { setPopups(computeSnakePopups()); } catch {} };
@@ -155,7 +145,6 @@ export default function LockdownOverlay() {
       />
       {/* frosted overlay */}
       <div className="absolute inset-0 backdrop-blur-xl bg-black/40 pointer-events-none" />
-      {/* 动态 XP 弹窗 */}
       {popups.map((p, i) => (
         <div
           key={i}
@@ -184,7 +173,6 @@ export default function LockdownOverlay() {
           </div>
         </div>
       ))}
-      {/* scanlines + glitch on top */}
       <div className="lockdown-scanlines lockdown-glitch z-800" />
     </div>
   );

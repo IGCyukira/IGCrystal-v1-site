@@ -64,7 +64,6 @@ export default function ClockOverlay({ className, locale, scoped = false }: Cloc
     ? "absolute left-4 top-[calc(env(safe-area-inset-top)+72px)] md:left-12 md:right-auto md:top-auto md:bottom-[calc(env(safe-area-inset-bottom)+24px)]"
     : "fixed left-4 top-[calc(env(safe-area-inset-top)+72px)] md:left-12 md:right-auto md:top-auto md:bottom-[calc(env(safe-area-inset-bottom)+24px)]";
 
-  // fullscreen support (minimal, keeps current styles)
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const targetSectionRef = useRef<HTMLElement | null>(null);

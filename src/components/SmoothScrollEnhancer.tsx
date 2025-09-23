@@ -4,7 +4,6 @@ import { useEffect } from "react";
 
 export default function SmoothScrollEnhancer() {
   useEffect(() => {
-    // Enhanced scroll behavior for better timing
     const smoothScrollTo = (element: Element, to: number, duration: number = 800) => {
       const start = element.scrollTop;
       const change = to - start;
@@ -13,8 +12,6 @@ export default function SmoothScrollEnhancer() {
       const animateScroll = (currentTime: number) => {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
-        // Use cubic-bezier easing for smooth motion
         const easeProgress = 1 - Math.pow(1 - progress, 3);
         
         element.scrollTop = start + change * easeProgress;
@@ -27,19 +24,15 @@ export default function SmoothScrollEnhancer() {
       requestAnimationFrame(animateScroll);
     };
 
-    // Enhanced wheel event handling
     const handleWheel = (e: Event) => {
       const wheelEvent = e as WheelEvent;
       const target = wheelEvent.currentTarget as Element;
       if (!target) return;
 
-      // Check if we should handle this scroll
       const isSnapContainer = target.classList.contains('snap-y') || 
                               target.classList.contains('snap-mandatory');
       
       if (!isSnapContainer) return;
-
-      // Only enhance for significant scroll movements
       if (Math.abs(wheelEvent.deltaY) < 10) return;
 
       wheelEvent.preventDefault();
@@ -47,20 +40,16 @@ export default function SmoothScrollEnhancer() {
       const containerHeight = target.clientHeight;
       const currentScroll = target.scrollTop;
       const maxScroll = target.scrollHeight - containerHeight;
-      
-      // Determine target section
       const direction = wheelEvent.deltaY > 0 ? 1 : -1;
       const targetScroll = Math.max(0, Math.min(maxScroll, 
         Math.round(currentScroll / containerHeight + direction) * containerHeight
       ));
 
-      // Only animate if we're moving to a different section
       if (Math.abs(targetScroll - currentScroll) > 50) {
         smoothScrollTo(target, targetScroll, 600);
       }
     };
 
-    // Enhanced keyboard navigation
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = document.querySelector('.snap-y');
       if (!target) return;
@@ -108,7 +97,6 @@ export default function SmoothScrollEnhancer() {
       }
     };
 
-    // Add enhanced scroll class and event listeners
     const snapContainer = document.querySelector('.snap-y');
     if (snapContainer) {
       snapContainer.classList.add('enhanced-scroll');
@@ -117,7 +105,6 @@ export default function SmoothScrollEnhancer() {
 
     document.addEventListener('keydown', handleKeyDown);
 
-    // Cleanup
     return () => {
       if (snapContainer) {
         snapContainer.removeEventListener('wheel', handleWheel);
@@ -127,5 +114,5 @@ export default function SmoothScrollEnhancer() {
     };
   }, []);
 
-  return null; // This component doesn't render anything
+  return null;
 }

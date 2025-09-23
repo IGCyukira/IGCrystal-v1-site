@@ -5,8 +5,8 @@ import wenturcLoader from "@/lib/wenturcLoader";
 import { useEffect, useRef, useState } from "react";
 
 export type CarouselBannerProps = {
-  baseUrl?: string; // e.g. https://api.wenturc.com
-  intervalMs?: number; // 切换间隔
+  baseUrl?: string; 
+  intervalMs?: number; 
   className?: string;
   overlayClassName?: string;
 };
@@ -24,7 +24,7 @@ export default function CarouselBanner({
   className,
   overlayClassName,
 }: CarouselBannerProps) {
-  // 为避免 SSR/CSR 不一致，初始用稳定的 baseUrl，挂载后再生成随机 URL
+
   const [currentSrc, setCurrentSrc] = useState<string>(baseUrl);
   const [nextSrc, setNextSrc] = useState<string | null>(null);
   const [currentLoaded, setCurrentLoaded] = useState<boolean>(false);
@@ -36,7 +36,6 @@ export default function CarouselBanner({
   const sectionRef = useRef<HTMLElement | null>(null);
   const [inView, setInView] = useState<boolean>(false);
 
-  // Observe visibility to control loading and switching
   useEffect(() => {
     const el = sectionRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
@@ -51,7 +50,6 @@ export default function CarouselBanner({
     return () => io.disconnect();
   }, []);
 
-  // 准备第一张 next 图，仅在进入视口时
   useEffect(() => {
     if (!inView || nextSrc) return;
     setNextSrc(makeRandomUrl(baseUrl));
@@ -63,11 +61,10 @@ export default function CarouselBanner({
       timerRef.current = null;
       return;
     }
-    // 周期性尝试切换；仅当下一张已加载才执行切换
+
     const id = window.setInterval(() => {
       if (!nextReady) return;
       setShowNext(true);
-      // 交叉淡入完成后，正式切换并预加载下一张
       window.setTimeout(() => {
         if (nextSrc) setCurrentSrc(nextSrc);
         setNextSrc(makeRandomUrl(baseUrl));
@@ -85,7 +82,6 @@ export default function CarouselBanner({
 
   return (
     <section ref={sectionRef as React.RefObject<HTMLElement>} className={`relative h-[100svh] w-full overflow-hidden ${className ?? ""}`}>
-      {/* 当前图像 */}
       <Image
         loader={wenturcLoader}
         key={currentSrc}
@@ -98,7 +94,6 @@ export default function CarouselBanner({
         onLoad={() => setCurrentLoaded(true)}
         draggable={false}
       />
-      {/* 预加载并在就绪后淡入的下一张图像 */}
       {nextSrc && (
       <Image
         loader={wenturcLoader}
