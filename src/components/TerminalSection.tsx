@@ -287,7 +287,7 @@ export default function TerminalSection({
     </div>
   </>
 ) : (
-  <span>▮</span>
+  <span>|</span>
 )}
         </pre>
       </div>
