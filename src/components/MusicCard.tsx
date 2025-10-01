@@ -46,7 +46,7 @@ function buildTrackLabel(track: TrackInfo | undefined): string {
 
 export default function MusicCard({
   className,
-  playlistUrl = "https://hls.wenturc.com/playlist.json",
+  playlistUrl = "https://hls.wenturc.com/music-playlist/playlist.json",
   streamingBaseUrl = "https://hls.wenturc.com",
   animate = true,
   defaultArtwork,
