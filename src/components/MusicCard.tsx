@@ -23,9 +23,7 @@ type TrackInfo = {
   cover?: string;
 };
 
-type PlaylistResponse = {
-  tracks?: TrackInfo[];
-};
+type PlaylistResponse = TrackInfo[] | { tracks?: TrackInfo[] };
 
 function buildTrackLabel(track: TrackInfo | undefined): string {
   if (!track) return "未知歌曲";
@@ -46,7 +44,7 @@ function buildTrackLabel(track: TrackInfo | undefined): string {
 
 export default function MusicCard({
   className,
-  playlistUrl = "https://hls.wenturc.com/music-playlist/playlist.json",
+  playlistUrl = "https://hls.wenturc.com/api/music/playlist",
   streamingBaseUrl = "https://hls.wenturc.com",
   animate = true,
   defaultArtwork,
@@ -83,7 +81,19 @@ export default function MusicCard({
   const currentHlsUrl = useMemo(() => {
     if (!currentTrack) return null;
     if (currentTrack.hasHLS && currentTrack.hlsUrl) {
-      return `${streamingBaseUrl}${currentTrack.hlsUrl}`;
+      const raw = currentTrack.hlsUrl;
+      // 绝对地址直接返回
+      if (/^https?:\/\//i.test(raw)) return raw;
+      // 优先使用 URL 进行安全拼接（可处理 base 含路径的情况）
+      try {
+        if (streamingBaseUrl) {
+          return new URL(raw, streamingBaseUrl).toString();
+        }
+      } catch {}
+      // 兜底：简单拼接
+      const base = (streamingBaseUrl || "").replace(/\/$/, "");
+      const path = raw.startsWith("/") ? raw : `/${raw}`;
+      return `${base}${path}`;
     }
     return null;
   }, [currentTrack, streamingBaseUrl]);
@@ -119,7 +129,8 @@ export default function MusicCard({
         const res = await fetch(playlistUrl, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as PlaylistResponse;
-        const list = data.tracks || [];
+        const rawList: TrackInfo[] = Array.isArray(data) ? data : (data?.tracks || []);
+        const list = (rawList || []).filter((t) => t && t.hasHLS && typeof t.hlsUrl === "string" && t.hlsUrl.length > 0);
         if (!cancelled) {
           setTracks(list);
           if (list.length > 0) {
