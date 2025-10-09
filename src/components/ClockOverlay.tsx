@@ -28,7 +28,6 @@ export default function ClockOverlay({ className, locale, scoped = false }: Cloc
   const minutes = `${now.getMinutes()}`.padStart(2, "0");
   const seconds = `${now.getSeconds()}`.padStart(2, "0");
 
-  // 让日期行宽度与时间行一致
   const timeRef = useRef<HTMLDivElement | null>(null);
   const [timeWidth, setTimeWidth] = useState<number | undefined>(undefined);
   useEffect(() => {

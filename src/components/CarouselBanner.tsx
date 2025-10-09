@@ -150,12 +150,14 @@ export default function CarouselBanner({
     const wrap = parallaxRef.current;
     if (!host || !wrap) return;
 
+    const mobileScale = 1.12;      
+    const mobileMovePx = 20;      
+    const mobileBuffer = 2;        
+    const mobileFreezeBand = 3;   
     let attached = false;
-
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
-
-    // Local lerp and animation loop for gyro
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
     const tick = () => {
       // smooth to target
       const tx = targetRef.current.x;
@@ -164,16 +166,15 @@ export default function CarouselBanner({
       currentRef.current.y = lerp(currentRef.current.y, ty, 0.08);
       const cx = currentRef.current.x;
       const cy = currentRef.current.y;
-      const desiredX = cx * movePx;
-      const desiredY = cy * movePx;
+      const desiredX = cx * mobileMovePx;
+      const desiredY = cy * mobileMovePx;
       let translateX = desiredX;
       let translateY = desiredY;
-      // edge-aware saturation (same as mouse loop)
       const rect = host.getBoundingClientRect();
-      const buffer = 3;
-      const freezeBand = 6;
-      const maxX = Math.max(0, (baseScale - 1) * rect.width * 0.5 - buffer);
-      const maxY = Math.max(0, (baseScale - 1) * rect.height * 0.5 - buffer);
+      const buffer = mobileBuffer;
+      const freezeBand = mobileFreezeBand;
+      const maxX = Math.max(0, (mobileScale - 1) * rect.width * 0.5 - buffer);
+      const maxY = Math.max(0, (mobileScale - 1) * rect.height * 0.5 - buffer);
       const boundaryX = Math.max(0, maxX - freezeBand);
       const boundaryY = Math.max(0, maxY - freezeBand);
       const prevX = lastTranslateRef.current.x;
@@ -186,7 +187,7 @@ export default function CarouselBanner({
       }
       translateX = Math.max(-maxX, Math.min(maxX, translateX));
       translateY = Math.max(-maxY, Math.min(maxY, translateY));
-      wrap.style.transform = `scale(${baseScale}) translate3d(${translateX}px, ${translateY}px, 0)`;
+      wrap.style.transform = `scale(${mobileScale}) translate3d(${translateX}px, ${translateY}px, 0)`;
       lastTranslateRef.current.x = translateX;
       lastTranslateRef.current.y = translateY;
       try { onParallax?.({ x: cx, y: cy }); } catch {}
