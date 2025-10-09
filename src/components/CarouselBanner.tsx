@@ -43,6 +43,7 @@ export default function CarouselBanner({
   const rafRefParallax = useRef<number | null>(null);
   const targetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const currentRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastTranslateRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const baseScale = 1.06; 
   const movePx = 14;
   const reducedMotion = typeof window !== "undefined" && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
@@ -83,9 +84,32 @@ export default function CarouselBanner({
       currentRef.current.y = lerp(currentRef.current.y, ty, 0.08);
       const cx = currentRef.current.x;
       const cy = currentRef.current.y;
-      const translateX = cx * movePx;
-      const translateY = cy * movePx;
+      const desiredX = cx * movePx;
+      const desiredY = cy * movePx;
+      let translateX = desiredX;
+      let translateY = desiredY;
+      const rect = host.getBoundingClientRect();
+      const buffer = 3;       
+      const freezeBand = 6;  
+      const maxX = Math.max(0, (baseScale - 1) * rect.width * 0.5 - buffer);
+      const maxY = Math.max(0, (baseScale - 1) * rect.height * 0.5 - buffer);
+      const boundaryX = Math.max(0, maxX - freezeBand);
+      const boundaryY = Math.max(0, maxY - freezeBand);
+      const prevX = lastTranslateRef.current.x;
+      const prevY = lastTranslateRef.current.y;
+
+      if (Math.abs(desiredX) > boundaryX && Math.abs(desiredX) >= Math.abs(prevX) && Math.sign(desiredX || 1) === Math.sign(prevX || desiredX || 1)) {
+        translateX = Math.sign(desiredX) * boundaryX;
+      }
+      if (Math.abs(desiredY) > boundaryY && Math.abs(desiredY) >= Math.abs(prevY) && Math.sign(desiredY || 1) === Math.sign(prevY || desiredY || 1)) {
+        translateY = Math.sign(desiredY) * boundaryY;
+      }
+
+      translateX = Math.max(-maxX, Math.min(maxX, translateX));
+      translateY = Math.max(-maxY, Math.min(maxY, translateY));
       wrap.style.transform = `scale(${baseScale}) translate3d(${translateX}px, ${translateY}px, 0)`;
+      lastTranslateRef.current.x = translateX;
+      lastTranslateRef.current.y = translateY;
       try { onParallax?.({ x: cx, y: cy }); } catch {}
       rafRefParallax.current = window.requestAnimationFrame(tick);
     };
