@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function SmoothScrollEnhancer() {
+  const lockedRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+
   useEffect(() => {
     const smoothScrollTo = (element: Element, to: number, duration: number = 800) => {
       const start = element.scrollTop;
@@ -10,6 +13,12 @@ export default function SmoothScrollEnhancer() {
       const startTime = performance.now();
 
       const animateScroll = (currentTime: number) => {
+        if (lockedRef.current) {
+          // Abort animation when locked
+          if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+          return;
+        }
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
         const easeProgress = 1 - Math.pow(1 - progress, 3);
@@ -17,11 +26,11 @@ export default function SmoothScrollEnhancer() {
         element.scrollTop = start + change * easeProgress;
         
         if (progress < 1) {
-          requestAnimationFrame(animateScroll);
+          rafRef.current = requestAnimationFrame(animateScroll);
         }
       };
 
-      requestAnimationFrame(animateScroll);
+      rafRef.current = requestAnimationFrame(animateScroll);
     };
 
     const handleWheel = (e: Event) => {
@@ -32,7 +41,8 @@ export default function SmoothScrollEnhancer() {
       const isSnapContainer = target.classList.contains('snap-y') || 
                               target.classList.contains('snap-mandatory');
       
-      if (!isSnapContainer) return;
+  if (!isSnapContainer) return;
+  if (lockedRef.current) { wheelEvent.preventDefault(); return; }
       if (Math.abs(wheelEvent.deltaY) < 10) return;
 
       wheelEvent.preventDefault();
@@ -51,8 +61,9 @@ export default function SmoothScrollEnhancer() {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = document.querySelector('.snap-y');
+  const target = document.querySelector('.snap-y');
       if (!target) return;
+  if (lockedRef.current) { e.preventDefault(); return; }
 
       const containerHeight = target.clientHeight;
       const currentScroll = target.scrollTop;
@@ -105,12 +116,27 @@ export default function SmoothScrollEnhancer() {
 
     document.addEventListener('keydown', handleKeyDown);
 
+    const onLock = () => {
+      lockedRef.current = true;
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+    const onUnlock = () => {
+      lockedRef.current = false;
+    };
+    window.addEventListener('site-lockdown:enable', onLock);
+    window.addEventListener('site-lockdown:disable', onUnlock);
+
     return () => {
       if (snapContainer) {
         snapContainer.removeEventListener('wheel', handleWheel);
         snapContainer.classList.remove('enhanced-scroll');
       }
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('site-lockdown:enable', onLock);
+      window.removeEventListener('site-lockdown:disable', onUnlock);
     };
   }, []);
 

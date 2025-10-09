@@ -18,6 +18,9 @@ export default function LockdownOverlay() {
   // Background audio
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  // Snap container scroll lock
+  const snapElRef = useRef<HTMLElement | null>(null);
+  const prevStyleRef = useRef<{ overflow?: string; overscrollBehavior?: string; touchAction?: string } | null>(null);
 
   const basePopupWidth = 320;
   const basePopupHeight = 140;
@@ -112,12 +115,47 @@ export default function LockdownOverlay() {
       try {
         document.body.style.overflow = "hidden";
       } catch {}
+      try {
+        const snap = document.querySelector('.snap-y') as HTMLElement | null;
+        snapElRef.current = snap;
+        if (snap) {
+          const style = snap.style;
+          // save previous inline styles to restore later
+          prevStyleRef.current = {
+            overflow: style.overflow,
+            overscrollBehavior: style.getPropertyValue('overscroll-behavior'),
+            touchAction: style.getPropertyValue('touch-action'),
+          };
+          style.overflow = 'hidden';
+          style.setProperty('overscroll-behavior', 'none');
+          style.setProperty('touch-action', 'none');
+        }
+      } catch {}
     };
     const onDisable = () => {
       setLocked(false);
       setPopups([]);
       try {
         document.body.style.overflow = "";
+      } catch {}
+      try {
+        const snap = snapElRef.current;
+        if (snap && prevStyleRef.current) {
+          const style = snap.style;
+          style.overflow = prevStyleRef.current.overflow ?? "";
+          if (prevStyleRef.current.overscrollBehavior) {
+            style.setProperty('overscroll-behavior', prevStyleRef.current.overscrollBehavior);
+          } else {
+            style.removeProperty('overscroll-behavior');
+          }
+          if (prevStyleRef.current.touchAction) {
+            style.setProperty('touch-action', prevStyleRef.current.touchAction);
+          } else {
+            style.removeProperty('touch-action');
+          }
+        }
+        prevStyleRef.current = null;
+        snapElRef.current = null;
       } catch {}
     };
     window.addEventListener("site-lockdown:enable", onEnable);
@@ -301,5 +339,3 @@ export default function LockdownOverlay() {
     </div>
   );
 }
-
-

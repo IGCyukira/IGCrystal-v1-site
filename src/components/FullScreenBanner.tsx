@@ -32,4 +32,3 @@ export default function FullScreenBanner({ src, alt = "banner", className, overl
     </section>
   );
 }
-
