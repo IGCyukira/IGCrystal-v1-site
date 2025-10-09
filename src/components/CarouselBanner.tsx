@@ -154,6 +154,45 @@ export default function CarouselBanner({
 
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
+    // Local lerp and animation loop for gyro
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    const tick = () => {
+      // smooth to target
+      const tx = targetRef.current.x;
+      const ty = targetRef.current.y;
+      currentRef.current.x = lerp(currentRef.current.x, tx, 0.08);
+      currentRef.current.y = lerp(currentRef.current.y, ty, 0.08);
+      const cx = currentRef.current.x;
+      const cy = currentRef.current.y;
+      const desiredX = cx * movePx;
+      const desiredY = cy * movePx;
+      let translateX = desiredX;
+      let translateY = desiredY;
+      // edge-aware saturation (same as mouse loop)
+      const rect = host.getBoundingClientRect();
+      const buffer = 3;
+      const freezeBand = 6;
+      const maxX = Math.max(0, (baseScale - 1) * rect.width * 0.5 - buffer);
+      const maxY = Math.max(0, (baseScale - 1) * rect.height * 0.5 - buffer);
+      const boundaryX = Math.max(0, maxX - freezeBand);
+      const boundaryY = Math.max(0, maxY - freezeBand);
+      const prevX = lastTranslateRef.current.x;
+      const prevY = lastTranslateRef.current.y;
+      if (Math.abs(desiredX) > boundaryX && Math.abs(desiredX) >= Math.abs(prevX) && Math.sign(desiredX || 1) === Math.sign(prevX || desiredX || 1)) {
+        translateX = Math.sign(desiredX) * boundaryX;
+      }
+      if (Math.abs(desiredY) > boundaryY && Math.abs(desiredY) >= Math.abs(prevY) && Math.sign(desiredY || 1) === Math.sign(prevY || desiredY || 1)) {
+        translateY = Math.sign(desiredY) * boundaryY;
+      }
+      translateX = Math.max(-maxX, Math.min(maxX, translateX));
+      translateY = Math.max(-maxY, Math.min(maxY, translateY));
+      wrap.style.transform = `scale(${baseScale}) translate3d(${translateX}px, ${translateY}px, 0)`;
+      lastTranslateRef.current.x = translateX;
+      lastTranslateRef.current.y = translateY;
+      try { onParallax?.({ x: cx, y: cy }); } catch {}
+      rafRefParallax.current = window.requestAnimationFrame(tick);
+    };
+
     const onOrientation = (e: DeviceOrientationEvent) => {
       const gamma = (e.gamma ?? 0); 
       const beta = (e.beta ?? 0);  
@@ -161,9 +200,7 @@ export default function CarouselBanner({
       const ny = clamp(beta / 30, -1, 1);
       targetRef.current.x = nx;
       targetRef.current.y = ny; 
-      if (rafRefParallax.current == null) rafRefParallax.current = window.requestAnimationFrame(() => {
-        rafRefParallax.current = null; 
-      });
+      if (rafRefParallax.current == null) rafRefParallax.current = window.requestAnimationFrame(tick);
     };
 
     const attach = () => {
@@ -200,11 +237,13 @@ export default function CarouselBanner({
 
     return () => {
       if (attached) window.removeEventListener('deviceorientation', onOrientation);
+      if (rafRefParallax.current) cancelAnimationFrame(rafRefParallax.current);
+      rafRefParallax.current = null;
       host.removeEventListener('pointerdown', onFirstInteract as EventListener);
       host.removeEventListener('touchend', onFirstInteract as EventListener);
       host.removeEventListener('click', onFirstInteract as EventListener);
     };
-  }, [reducedMotion, inView]);
+  }, [reducedMotion, inView, onParallax]);
 
   useEffect(() => {
     if (!inView) {
