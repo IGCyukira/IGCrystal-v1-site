@@ -84,13 +84,11 @@ export default function MusicCard({
       const raw = currentTrack.hlsUrl;
       // 绝对地址直接返回
       if (/^https?:\/\//i.test(raw)) return raw;
-      // 优先使用 URL 进行安全拼接（可处理 base 含路径的情况）
       try {
         if (streamingBaseUrl) {
           return new URL(raw, streamingBaseUrl).toString();
         }
       } catch {}
-      // 兜底：简单拼接
       const base = (streamingBaseUrl || "").replace(/\/$/, "");
       const path = raw.startsWith("/") ? raw : `/${raw}`;
       return `${base}${path}`;

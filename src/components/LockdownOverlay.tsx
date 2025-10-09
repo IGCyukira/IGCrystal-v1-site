@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Hls from "hls.js";
 
 export default function LockdownOverlay() {
   const [locked, setLocked] = useState<boolean>(false);
@@ -13,6 +14,10 @@ export default function LockdownOverlay() {
     width: number;
     height: number;
   }>>([]);
+
+  // Background audio
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   const basePopupWidth = 320;
   const basePopupHeight = 140;
@@ -45,7 +50,7 @@ export default function LockdownOverlay() {
     let x = Math.max(0, Math.floor((screenWidth - basePopupWidth) / 2));
     let y = Math.max(0, Math.floor((screenHeight - basePopupHeight) / 2));
     let angle = Math.random() * Math.PI * 2; // 0-360°
-    angle += (Math.random() - 0.5) * (Math.PI / 6); // +-30° 偏移，避免过于规则
+    angle += (Math.random() - 0.5) * (Math.PI / 6); // +-30°
 
     const step = Math.max(24, Math.floor(Math.min(basePopupWidth, basePopupHeight) * 0.55));
     let z = 3000;
@@ -93,7 +98,7 @@ export default function LockdownOverlay() {
       x = nextX;
       y = nextY;
 
-      const covered = visited.size / totalCells;
+          const covered = visited.size / totalCells;
       if (covered >= 0.92) break; 
     }
 
@@ -124,24 +129,143 @@ export default function LockdownOverlay() {
   }, [computeSnakePopups]);
 
   useEffect(() => {
+    if (!locked) {
+      try { hlsRef.current?.destroy(); } catch {}
+      hlsRef.current = null;
+      const a = audioRef.current;
+      try {
+        if (a) {
+          a.pause();
+          a.removeAttribute("src");
+          a.load?.();
+        }
+      } catch {}
+      return;
+    }
+
+    const a = audioRef.current;
+    if (!a) return;
+
+    const hlsUrl = "https://hls.wenturc.com/music-hls/Laur-null-feat/playlist.m3u8";
+    const tryAutoplay = () => {
+      return a.play().catch(() => {
+        try { a.muted = true; } catch {}
+        return a.play().catch(() => {});
+      });
+    };
+
+    const onEnded = () => {
+      try {
+        a.currentTime = 0;
+        a.play().catch(() => {});
+      } catch {}
+    };
+    a.addEventListener("ended", onEnded);
+
+    if (a.canPlayType("application/vnd.apple.mpegurl")) {
+      a.src = hlsUrl;
+      if (a.readyState >= 2) {
+        tryAutoplay();
+      } else {
+        const onReady = () => {
+          tryAutoplay();
+          a.removeEventListener("loadedmetadata", onReady);
+          a.removeEventListener("canplay", onReady);
+        };
+        a.addEventListener("loadedmetadata", onReady);
+        a.addEventListener("canplay", onReady);
+      }
+      return () => {
+        a.removeEventListener("ended", onEnded);
+      };
+    }
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        startLevel: -1,
+        autoStartLoad: true,
+        lowLatencyMode: false,
+      });
+      hlsRef.current = hls;
+      hls.attachMedia(a);
+      hls.loadSource(hlsUrl);
+      const onManifest = () => {
+        tryAutoplay();
+      };
+      hls.on(Hls.Events.MANIFEST_PARSED, onManifest);
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              try { hls.startLoad(); } catch {}
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              try { hls.recoverMediaError(); } catch {}
+              break;
+            default:
+              try { hls.destroy(); } catch {}
+              hlsRef.current = null;
+              break;
+          }
+        }
+      });
+      return () => {
+        try { hls.off(Hls.Events.MANIFEST_PARSED, onManifest); } catch {}
+        a.removeEventListener("ended", onEnded);
+      };
+    }
+
+    a.src = hlsUrl;
+    tryAutoplay();
+    return () => {
+      a.removeEventListener("ended", onEnded);
+    };
+  }, [locked]);
+
+  useEffect(() => {
     if (!locked) return;
     const onResize = () => { try { setPopups(computeSnakePopups()); } catch {} };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [locked, computeSnakePopups]);
 
+  useEffect(() => {
+    if (!locked) return;
+    const prevent = (e: Event) => { e.preventDefault(); };
+    const preventKeys = (e: KeyboardEvent) => {
+      const k = e.key;
+      if (
+        k === "ArrowUp" || k === "ArrowDown" || k === "ArrowLeft" || k === "ArrowRight" ||
+        k === "PageUp" || k === "PageDown" || k === "Home" || k === "End" || k === " "
+      ) {
+        e.preventDefault();
+      }
+    };
+  const opts: AddEventListenerOptions = { passive: false, capture: true };
+  window.addEventListener("wheel", prevent, opts);
+  window.addEventListener("touchmove", prevent, opts);
+  window.addEventListener("keydown", preventKeys, opts);
+  window.addEventListener("DOMMouseScroll", prevent as EventListener, opts);
+
+    return () => {
+      window.removeEventListener("wheel", prevent as EventListener, true);
+      window.removeEventListener("touchmove", prevent as EventListener, true);
+      window.removeEventListener("keydown", preventKeys as EventListener, true);
+      window.removeEventListener("DOMMouseScroll", prevent as EventListener, true);
+    };
+  }, [locked]);
+
   if (!locked) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] text-white pointer-events-auto select-none">
-      {/* video background */}
-      <video
-        className="absolute inset-0 h-full w-full object-cover"
-        src="https://hls.wenturc.com/video/Xaleid%E2%97%86scopiX-xi[maimai].mp4"
+      {/* background audio */}
+      <audio
+        ref={audioRef}
+        className="hidden"
         autoPlay
-        muted={false}
-        playsInline
         loop
+        preload="auto"
       />
       {/* frosted overlay */}
       <div className="absolute inset-0 backdrop-blur-xl bg-black/40 pointer-events-none" />
@@ -173,7 +297,7 @@ export default function LockdownOverlay() {
           </div>
         </div>
       ))}
-      <div className="lockdown-scanlines lockdown-glitch z-800" />
+          <div className="lockdown-scanlines lockdown-glitch z-800" />
     </div>
   );
 }
