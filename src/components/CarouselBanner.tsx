@@ -9,6 +9,7 @@ export type CarouselBannerProps = {
   intervalMs?: number; 
   className?: string;
   overlayClassName?: string;
+  onParallax?: (pos: { x: number; y: number }) => void;
 };
 
 function makeRandomUrl(base: string): string {
@@ -23,6 +24,7 @@ export default function CarouselBanner({
   intervalMs = 5000,
   className,
   overlayClassName,
+  onParallax,
 }: CarouselBannerProps) {
 
   const [currentSrc, setCurrentSrc] = useState<string>(baseUrl);
@@ -35,6 +37,15 @@ export default function CarouselBanner({
 
   const sectionRef = useRef<HTMLElement | null>(null);
   const [inView, setInView] = useState<boolean>(false);
+
+  // Mouse parallax/tilt effect
+  const parallaxRef = useRef<HTMLDivElement | null>(null);
+  const rafRefParallax = useRef<number | null>(null);
+  const targetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const currentRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const baseScale = 1.06; 
+  const movePx = 14;
+  const reducedMotion = typeof window !== "undefined" && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -54,6 +65,122 @@ export default function CarouselBanner({
     if (!inView || nextSrc) return;
     setNextSrc(makeRandomUrl(baseUrl));
   }, [inView, baseUrl, nextSrc]);
+
+  useEffect(() => {
+    if (reducedMotion || !inView) return;
+    const host = sectionRef.current;
+    const wrap = parallaxRef.current;
+    if (!host || !wrap) return;
+
+    wrap.style.transform = `scale(${baseScale})`;
+
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+    const tick = () => {
+      const tx = targetRef.current.x;
+      const ty = targetRef.current.y;
+      currentRef.current.x = lerp(currentRef.current.x, tx, 0.08);
+      currentRef.current.y = lerp(currentRef.current.y, ty, 0.08);
+      const cx = currentRef.current.x;
+      const cy = currentRef.current.y;
+      const translateX = cx * movePx;
+      const translateY = cy * movePx;
+      wrap.style.transform = `scale(${baseScale}) translate3d(${translateX}px, ${translateY}px, 0)`;
+      try { onParallax?.({ x: cx, y: cy }); } catch {}
+      rafRefParallax.current = window.requestAnimationFrame(tick);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType && e.pointerType !== "mouse") return; 
+      const rect = host.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const nx = Math.max(-1, Math.min(1, (e.clientX - cx) / (rect.width / 2)));
+      const ny = Math.max(-1, Math.min(1, (e.clientY - cy) / (rect.height / 2)));
+      targetRef.current.x = nx;
+      targetRef.current.y = ny;
+      if (rafRefParallax.current == null) rafRefParallax.current = window.requestAnimationFrame(tick);
+    };
+    const onPointerLeave = () => {
+      targetRef.current.x = 0;
+      targetRef.current.y = 0;
+      if (rafRefParallax.current == null) rafRefParallax.current = window.requestAnimationFrame(tick);
+    };
+
+    host.addEventListener('pointermove', onPointerMove);
+    host.addEventListener('pointerleave', onPointerLeave);
+
+    return () => {
+      host.removeEventListener('pointermove', onPointerMove);
+      host.removeEventListener('pointerleave', onPointerLeave);
+      if (rafRefParallax.current) cancelAnimationFrame(rafRefParallax.current);
+      rafRefParallax.current = null;
+      try { wrap.style.transform = ''; } catch {}
+      try { onParallax?.({ x: 0, y: 0 }); } catch {}
+    };
+  }, [reducedMotion, baseScale, movePx, onParallax, inView]);
+
+  useEffect(() => {
+    if (reducedMotion || !inView) return;
+    const host = sectionRef.current;
+    const wrap = parallaxRef.current;
+    if (!host || !wrap) return;
+
+    let attached = false;
+
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+
+    const onOrientation = (e: DeviceOrientationEvent) => {
+      const gamma = (e.gamma ?? 0); 
+      const beta = (e.beta ?? 0);  
+      const nx = clamp(gamma / 30, -1, 1);
+      const ny = clamp(beta / 30, -1, 1);
+      targetRef.current.x = nx;
+      targetRef.current.y = ny; 
+      if (rafRefParallax.current == null) rafRefParallax.current = window.requestAnimationFrame(() => {
+        rafRefParallax.current = null; 
+      });
+    };
+
+    const attach = () => {
+      if (attached) return;
+      window.addEventListener('deviceorientation', onOrientation);
+      attached = true;
+    };
+
+    const tryRequestPermission = async () => {
+      try {
+        const DOClass = (window as unknown as { DeviceOrientationEvent?: { requestPermission?: () => Promise<"granted" | "denied"> } }).DeviceOrientationEvent;
+        if (DOClass && typeof DOClass.requestPermission === 'function') {
+          const res = await DOClass.requestPermission();
+          if (res === 'granted') attach();
+        } else {
+          attach();
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    const onFirstInteract = () => {
+      tryRequestPermission();
+      host.removeEventListener('pointerdown', onFirstInteract);
+      host.removeEventListener('touchend', onFirstInteract);
+      host.removeEventListener('click', onFirstInteract);
+    };
+
+    attach();
+    host.addEventListener('pointerdown', onFirstInteract, { once: true });
+    host.addEventListener('touchend', onFirstInteract, { once: true });
+    host.addEventListener('click', onFirstInteract, { once: true });
+
+    return () => {
+      if (attached) window.removeEventListener('deviceorientation', onOrientation);
+      host.removeEventListener('pointerdown', onFirstInteract as EventListener);
+      host.removeEventListener('touchend', onFirstInteract as EventListener);
+      host.removeEventListener('click', onFirstInteract as EventListener);
+    };
+  }, [reducedMotion, inView]);
 
   useEffect(() => {
     if (!inView) {
@@ -82,6 +209,8 @@ export default function CarouselBanner({
 
   return (
     <section ref={sectionRef as React.RefObject<HTMLElement>} className={`relative h-[100svh] w-full overflow-hidden ${className ?? ""}`}>
+      {/* Parallax wrapper for images */}
+      <div ref={parallaxRef} className="absolute inset-0 will-change-transform">
       <Image
         loader={wenturcLoader}
         key={currentSrc}
@@ -107,6 +236,7 @@ export default function CarouselBanner({
         onLoad={() => setNextReady(true)}
         draggable={false}
       />)}
+      </div>
       <div
         className={`absolute inset-0 bg-black/40 pointer-events-none ${overlayClassName ?? ""}`}
         aria-hidden
