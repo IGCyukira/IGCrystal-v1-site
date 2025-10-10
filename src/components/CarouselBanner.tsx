@@ -73,7 +73,10 @@ export default function CarouselBanner({
     const wrap = parallaxRef.current;
     if (!host || !wrap) return;
 
-    wrap.style.transform = `scale(${baseScale})`;
+    // 仅在没有任何 transform 时设置初始缩放，避免离开/重入时尺寸跳变
+    if (!wrap.style.transform) {
+      wrap.style.transform = `scale(${baseScale})`;
+    }
 
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -139,8 +142,6 @@ export default function CarouselBanner({
       host.removeEventListener('pointerleave', onPointerLeave);
       if (rafRefParallax.current) cancelAnimationFrame(rafRefParallax.current);
       rafRefParallax.current = null;
-      try { wrap.style.transform = ''; } catch {}
-      try { onParallax?.({ x: 0, y: 0 }); } catch {}
     };
   }, [reducedMotion, baseScale, movePx, onParallax, inView]);
 
