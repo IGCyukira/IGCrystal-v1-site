@@ -13,7 +13,7 @@ export type TerminalSectionProps = {
 };
 
 const defaultLines = [
-  ":)"
+  ":)",
   "ViaLonga, Somniviva",
   "",
   "The wind silvers the plain; footprints fade into stars. Shadows stack like old dreams.",
@@ -155,7 +155,7 @@ export default function TerminalSection({
       case "help": {
         pushEntry(
           <div>
-            Available commands: <span className="text-emerald-400">help</span>, <span className="text-emerald-400">others</span>, <span className="text-emerald-400">aboutme</span>, <span className="text-emerald-400">clear</span>, <span className="text-emerald-400">rm</span>
+            Available commands: <span className="text-emerald-400">help</span>, <span className="text-emerald-400">others</span>, <span className="text-emerald-400">aboutme</span>, <span className="te[...]
           </div>
         );
         break;
@@ -270,7 +270,7 @@ export default function TerminalSection({
       </div>
 
       <div className="terminal-font w-full max-w-5xl relative z-10">
-        <pre className="whitespace-pre-wrap leading-7 text-[14px] sm:text-[15px] md:text-base first-line:text-2xl sm:first-line:text-3xl md:first-line:text-4xl">
+        <pre className="whitespace-pre-wrap leading-7 text-[14px] sm:text-[15px] md:text-base first-line:text-6xl sm:first-line:text-7xl md:first-line:text-8xl first-line:leading-none">
 {output}
 {typingDone && entries.length > 0 ? (
   <>
