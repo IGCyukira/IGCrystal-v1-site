@@ -399,7 +399,6 @@ const PrismaticBurst = ({
       uniforms: {
         uResolution: { value: [1, 1] },
         uTime: { value: 0 },
-
         uIntensity: { value: 1 },
         uSpeed: { value: 1 },
         uAnimType: { value: 0 },
