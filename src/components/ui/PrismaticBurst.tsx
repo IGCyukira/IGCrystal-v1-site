@@ -277,7 +277,6 @@ const PrismaticBurst = ({
   canvasEl.style.inset = '0';
   canvasEl.style.width = '100%';
   canvasEl.style.height = '100%';
-  // 初始值统一为空，后续由单独的 effect 同步 mixBlendMode
   canvasEl.style.mixBlendMode = '';
   container.appendChild(canvasEl);
 
