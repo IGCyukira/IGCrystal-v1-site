@@ -17,6 +17,7 @@ type PBUniforms = {
   uNoiseAmount: { value: number };
   uRayCount: { value: number };
   uStepLimit: { value: number };
+  uEdgeNoise: { value: number };
 };
 
 type Offset = { x?: number | string; y?: number | string };
@@ -39,6 +40,11 @@ export type PrismaticBurstProps = {
   maxSteps?: number;
   minDprScale?: number;
   pauseWhenHidden?: boolean;
+  // 交互/调试
+  interactiveBias?: boolean;
+  interactiveWindowMs?: number;
+  debugOverlay?: boolean;
+  edgeNoise?: boolean;
 };
 
 const vertexShader = `#version 300 es
@@ -71,6 +77,7 @@ uniform sampler2D uGradient;
 uniform float uNoiseAmount;
 uniform int   uRayCount;
 uniform int   uStepLimit;
+uniform int   uEdgeNoise;
 
 float hash21(vec2 p){
     p = floor(p);
@@ -106,7 +113,9 @@ float edgeFade(vec2 frag, vec2 res, vec2 offset){
     s = pow(s, 1.5);
     float tail = 1.0 - pow(1.0 - s, 2.0);
     s = mix(s, tail, 0.2);
-    float dn = (layeredNoise(frag * 0.15) - 0.5) * 0.0015 * s;
+    float dn = (uEdgeNoise == 1)
+    ? (layeredNoise(frag * 0.15) - 0.5) * 0.0015 * s
+    : 0.0;
     return clamp(s + dn, 0.0, 1.0);
 }
 
@@ -257,7 +266,11 @@ const PrismaticBurst = ({
   minSteps = 28,
   maxSteps = 44,
   minDprScale = 0.6,
-  pauseWhenHidden = true
+  pauseWhenHidden = true,
+  interactiveBias = true,
+  interactiveWindowMs = 1200,
+  debugOverlay = false,
+  edgeNoise = true
 }: PrismaticBurstProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const programRef = useRef<(Program & { uniforms: PBUniforms }) | null>(null);
@@ -279,6 +292,12 @@ const PrismaticBurst = ({
   const maxStepsRef = useRef<number>(Math.max(1, maxSteps));
   const minScaleRef = useRef<number>(Math.min(1, Math.max(0.3, minDprScale)));
   const perfModeRef = useRef<'auto' | 'quality' | 'speed'>(performanceMode);
+  const interactionWindowMsRef = useRef<number>(interactiveWindowMs);
+  const interactiveBiasRef = useRef<boolean>(interactiveBias);
+  const lastPointerTsRef = useRef<number>(0);
+  const debugElRef = useRef<HTMLDivElement | null>(null);
+  const edgeNoiseRef = useRef<boolean>(edgeNoise);
+  const debugOverlayRef = useRef<boolean>(debugOverlay);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -306,6 +325,18 @@ const PrismaticBurst = ({
   useEffect(() => {
     perfModeRef.current = performanceMode;
   }, [performanceMode]);
+  useEffect(() => {
+    debugOverlayRef.current = debugOverlay;
+  }, [debugOverlay]);
+  useEffect(() => {
+    edgeNoiseRef.current = edgeNoise;
+  }, [edgeNoise]);
+  useEffect(() => {
+    interactionWindowMsRef.current = interactiveWindowMs;
+  }, [interactiveWindowMs]);
+  useEffect(() => {
+    interactiveBiasRef.current = interactiveBias;
+  }, [interactiveBias]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -328,6 +359,24 @@ const PrismaticBurst = ({
   canvasEl.style.height = '100%';
   canvasEl.style.mixBlendMode = '';
   container.appendChild(canvasEl);
+  // 调试 Overlay（按需）
+  if (debugOverlayRef.current) {
+    const dbg = document.createElement('div');
+    dbg.style.position = 'absolute';
+    dbg.style.left = '8px';
+    dbg.style.top = '8px';
+    dbg.style.zIndex = '1';
+    dbg.style.padding = '6px 8px';
+    dbg.style.borderRadius = '6px';
+    dbg.style.font = '12px/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+    dbg.style.background = 'rgba(0,0,0,0.5)';
+    dbg.style.color = '#e3e3e3';
+    dbg.style.pointerEvents = 'none';
+    dbg.style.whiteSpace = 'pre';
+    dbg.textContent = 'PrismaticBurst\n—';
+    container.appendChild(dbg);
+    debugElRef.current = dbg;
+  }
 
     const white = new Uint8Array([255, 255, 255, 255]);
     const gradientTex = new Texture(gl, {
@@ -361,7 +410,8 @@ const PrismaticBurst = ({
         uGradient: { value: gradientTex },
         uNoiseAmount: { value: 0.8 },
         uRayCount: { value: 0 },
-        uStepLimit: { value: Math.max(1, Math.min(44, stepLimitRef.current)) }
+        uStepLimit: { value: Math.max(1, Math.min(44, stepLimitRef.current)) },
+        uEdgeNoise: { value: edgeNoiseRef.current ? 1 : 0 }
       }
     }) as Program & { uniforms: PBUniforms };
 
@@ -395,6 +445,7 @@ const PrismaticBurst = ({
       const x = (e.clientX - rect.left) / Math.max(rect.width, 1);
       const y = (e.clientY - rect.top) / Math.max(rect.height, 1);
       mouseTargetRef.current = [Math.min(Math.max(x, 0), 1), Math.min(Math.max(y, 0), 1)];
+      lastPointerTsRef.current = performance.now();
     };
     container.addEventListener('pointermove', onPointer, { passive: true });
 
@@ -446,6 +497,8 @@ const PrismaticBurst = ({
       emaDt = emaDt * (1 - emaAlpha) + sinceRender * emaAlpha;
       const currentFps = 1 / Math.max(1e-6, emaDt);
       let needResize = false;
+      const nowMs = performance.now();
+      const interacting = interactiveBiasRef.current && (nowMs - lastPointerTsRef.current) < interactionWindowMsRef.current;
       if (perfMode === 'auto') {
         const scale = dprScaleRef.current;
         const minScale = minScaleRef.current;
@@ -467,6 +520,25 @@ const PrismaticBurst = ({
             stepLimitRef.current = Math.min(maxStepsRef.current, stepLimitRef.current + 1);
           }
         }
+        if (interactiveBiasRef.current) {
+          if (interacting) {
+            if (dprScaleRef.current < 1) {
+              dprScaleRef.current = Math.min(1, dprScaleRef.current + 0.05);
+              needResize = true;
+            }
+            if (stepLimitRef.current < maxStepsRef.current) {
+              stepLimitRef.current = Math.min(maxStepsRef.current, stepLimitRef.current + 1);
+            }
+          } else {
+            if (dprScaleRef.current > minScaleRef.current) {
+              dprScaleRef.current = Math.max(minScaleRef.current, dprScaleRef.current - 0.02);
+              needResize = true;
+            }
+            if (stepLimitRef.current > minStepsRef.current) {
+              stepLimitRef.current = Math.max(minStepsRef.current, stepLimitRef.current - 1);
+            }
+          }
+        }
       } else if (perfMode === 'speed') {
         if (dprScaleRef.current !== minScaleRef.current) {
           dprScaleRef.current = minScaleRef.current;
@@ -486,6 +558,12 @@ const PrismaticBurst = ({
       program.uniforms.uStepLimit.value = Math.max(1, Math.min(44, Math.floor(stepLimitRef.current)));
       program.uniforms.uTime.value = accumTime;
       renderer.render({ scene: meshRef.current! });
+      if (debugElRef.current) {
+        const scaleNow = dprScaleRef.current;
+        const dprEff = baseDprRef.current * scaleNow;
+        const info = `FPS: ${currentFps.toFixed(1)}\nDPR: ${dprEff.toFixed(2)} (scale ${scaleNow.toFixed(2)})\nSteps: ${Math.floor(stepLimitRef.current)} / ${maxStepsRef.current}\nMode: ${perfMode}${interacting ? ' (interact)' : ''}`;
+        debugElRef.current.textContent = info;
+      }
       sinceRender = 0;
       raf = requestAnimationFrame(update);
     };
@@ -502,6 +580,10 @@ const PrismaticBurst = ({
         container.removeChild(canvasEl);
       } catch (e) {
         void e;
+      }
+      if (debugElRef.current) {
+        try { container.removeChild(debugElRef.current); } catch { /* noop */ }
+        debugElRef.current = null;
       }
       meshRef.current = null;
       triRef.current = null;
@@ -576,7 +658,8 @@ const PrismaticBurst = ({
       count = 0;
     }
     program.uniforms.uColorCount.value = count;
-  }, [intensity, speed, animationType, colors, distort, offset, rayCount]);
+    program.uniforms.uEdgeNoise.value = edgeNoise ? 1 : 0;
+  }, [intensity, speed, animationType, colors, distort, offset, rayCount, edgeNoise]);
 
   return <div className="w-full h-full relative overflow-hidden" ref={containerRef} />;
 };

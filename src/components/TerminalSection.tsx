@@ -276,7 +276,7 @@ export default function TerminalSection({
       </div>
 
       {/* Desktop and up: Prismatic Burst */}
-      <div className="pointer-events-none absolute inset-0 z-0 hidden md:block">
+      <div className="pointer-events-auto absolute inset-0 z-0 hidden md:block" aria-hidden>
         <PrismaticBurst
           intensity={1.6}
           speed={0.55}
