@@ -16,6 +16,7 @@ type PBUniforms = {
   uGradient: { value: Texture };
   uNoiseAmount: { value: number };
   uRayCount: { value: number };
+  uStepLimit: { value: number };
 };
 
 type Offset = { x?: number | string; y?: number | string };
@@ -32,6 +33,12 @@ export type PrismaticBurstProps = {
   hoverDampness?: number;
   rayCount?: number;
   mixBlendMode?: React.CSSProperties['mixBlendMode'] | 'none';
+  performanceMode?: 'auto' | 'quality' | 'speed';
+  maxFps?: number; 
+  minSteps?: number; 
+  maxSteps?: number;
+  minDprScale?: number;
+  pauseWhenHidden?: boolean;
 };
 
 const vertexShader = `#version 300 es
@@ -63,6 +70,7 @@ uniform vec2  uOffset;
 uniform sampler2D uGradient;
 uniform float uNoiseAmount;
 uniform int   uRayCount;
+uniform int   uStepLimit;
 
 float hash21(vec2 p){
     p = floor(p);
@@ -147,7 +155,8 @@ void main(){
       hoverMat = rotY(ang.y) * rotX(ang.x);
     }
 
-    for (int i = 0; i < 44; ++i) {
+  for (int i = 0; i < 44; ++i) {
+    if(i >= uStepLimit) break;
         vec3 P = marchT * dir;
         P.z -= 2.0;
         float rad = length(P);
@@ -242,7 +251,13 @@ const PrismaticBurst = ({
   offset = { x: 0, y: 0 },
   hoverDampness = 0,
   rayCount,
-  mixBlendMode = 'lighten'
+  mixBlendMode = 'lighten',
+  performanceMode = 'auto',
+  maxFps = 60,
+  minSteps = 28,
+  maxSteps = 44,
+  minDprScale = 0.6,
+  pauseWhenHidden = true
 }: PrismaticBurstProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const programRef = useRef<(Program & { uniforms: PBUniforms }) | null>(null);
@@ -255,6 +270,15 @@ const PrismaticBurst = ({
   const isVisibleRef = useRef<boolean>(true);
   const meshRef = useRef<Mesh | null>(null);
   const triRef = useRef<Triangle | null>(null);
+  const pauseWhenHiddenRef = useRef<boolean>(pauseWhenHidden);
+  const baseDprRef = useRef<number>(1);
+  const dprScaleRef = useRef<number>(1);
+  const targetFpsRef = useRef<number>(Math.max(1, maxFps));
+  const stepLimitRef = useRef<number>(Math.min(Math.max(minSteps, 1), Math.max(maxSteps, 1)));
+  const minStepsRef = useRef<number>(Math.max(1, minSteps));
+  const maxStepsRef = useRef<number>(Math.max(1, maxSteps));
+  const minScaleRef = useRef<number>(Math.min(1, Math.max(0.3, minDprScale)));
+  const perfModeRef = useRef<'auto' | 'quality' | 'speed'>(performanceMode);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -262,13 +286,38 @@ const PrismaticBurst = ({
   useEffect(() => {
     hoverDampRef.current = hoverDampness;
   }, [hoverDampness]);
+  useEffect(() => {
+    pauseWhenHiddenRef.current = pauseWhenHidden;
+  }, [pauseWhenHidden]);
+  useEffect(() => {
+    targetFpsRef.current = Math.max(1, maxFps || 60);
+  }, [maxFps]);
+  useEffect(() => {
+    minStepsRef.current = Math.max(1, minSteps);
+    maxStepsRef.current = Math.max(minStepsRef.current, maxSteps);
+    stepLimitRef.current = Math.min(
+      Math.max(stepLimitRef.current, minStepsRef.current),
+      maxStepsRef.current
+    );
+  }, [minSteps, maxSteps]);
+  useEffect(() => {
+    minScaleRef.current = Math.min(1, Math.max(0.3, minDprScale));
+  }, [minDprScale]);
+  useEffect(() => {
+    perfModeRef.current = performanceMode;
+  }, [performanceMode]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const renderer = new Renderer({ dpr, alpha: false, antialias: false });
+    const baseDpr = Math.min(window.devicePixelRatio || 1, 2);
+    baseDprRef.current = baseDpr;
+    const renderer = new Renderer({
+      dpr: baseDpr,
+      alpha: false,
+      antialias: false,
+    });
     rendererRef.current = renderer;
 
   const gl = renderer.gl;
@@ -311,7 +360,8 @@ const PrismaticBurst = ({
         uOffset: { value: [0, 0] },
         uGradient: { value: gradientTex },
         uNoiseAmount: { value: 0.8 },
-        uRayCount: { value: 0 }
+        uRayCount: { value: 0 },
+        uStepLimit: { value: Math.max(1, Math.min(44, stepLimitRef.current)) }
       }
     }) as Program & { uniforms: PBUniforms };
 
@@ -325,6 +375,8 @@ const PrismaticBurst = ({
     const resize = () => {
       const w = container.clientWidth || 1;
       const h = container.clientHeight || 1;
+      const scale = dprScaleRef.current;
+      (renderer as Renderer & { dpr: number }).dpr = baseDprRef.current * scale;
       renderer.setSize(w, h);
       program.uniforms.uResolution.value = [gl.drawingBufferWidth, gl.drawingBufferHeight];
     };
@@ -362,12 +414,15 @@ const PrismaticBurst = ({
     let raf = 0;
     let last = performance.now();
     let accumTime = 0;
+    let sinceRender = 0;
+    let emaDt = 1 / 60;
+    const emaAlpha = 0.2;
 
     const update = (now: number) => {
       const dt = Math.max(0, now - last) * 0.001;
       last = now;
       const visible = isVisibleRef.current && !document.hidden;
-      if (!pausedRef.current) accumTime += dt;
+      if (!pausedRef.current && (!pauseWhenHiddenRef.current || visible)) accumTime += dt;
       if (!visible) {
         raf = requestAnimationFrame(update);
         return;
@@ -379,8 +434,59 @@ const PrismaticBurst = ({
       sm[0] += (tgt[0] - sm[0]) * alpha;
       sm[1] += (tgt[1] - sm[1]) * alpha;
   program.uniforms.uMouse.value = sm as [number, number];
+
+      const targetDelta = 1 / Math.max(1, targetFpsRef.current);
+      sinceRender += dt;
+      if (sinceRender < targetDelta) {
+        raf = requestAnimationFrame(update);
+        return;
+      }
+
+      const perfMode = perfModeRef.current;
+      emaDt = emaDt * (1 - emaAlpha) + sinceRender * emaAlpha;
+      const currentFps = 1 / Math.max(1e-6, emaDt);
+      let needResize = false;
+      if (perfMode === 'auto') {
+        const scale = dprScaleRef.current;
+        const minScale = minScaleRef.current;
+        const targetFps = targetFpsRef.current;
+        if (currentFps < targetFps * 0.9) {
+          if (scale > minScale) {
+            dprScaleRef.current = Math.max(minScale, scale - 0.06);
+            needResize = true;
+          }
+          if (stepLimitRef.current > minStepsRef.current) {
+            stepLimitRef.current = Math.max(minStepsRef.current, stepLimitRef.current - 2);
+          }
+        } else if (currentFps > targetFps * 0.98) {
+          if (scale < 1) {
+            dprScaleRef.current = Math.min(1, scale + 0.04);
+            needResize = true;
+          }
+          if (stepLimitRef.current < maxStepsRef.current) {
+            stepLimitRef.current = Math.min(maxStepsRef.current, stepLimitRef.current + 1);
+          }
+        }
+      } else if (perfMode === 'speed') {
+        if (dprScaleRef.current !== minScaleRef.current) {
+          dprScaleRef.current = minScaleRef.current;
+          needResize = true;
+        }
+        stepLimitRef.current = minStepsRef.current;
+      } else if (perfMode === 'quality') {
+        if (dprScaleRef.current !== 1) {
+          dprScaleRef.current = 1;
+          needResize = true;
+        }
+        stepLimitRef.current = maxStepsRef.current;
+      }
+
+      if (needResize) resize();
+
+      program.uniforms.uStepLimit.value = Math.max(1, Math.min(44, Math.floor(stepLimitRef.current)));
       program.uniforms.uTime.value = accumTime;
       renderer.render({ scene: meshRef.current! });
+      sinceRender = 0;
       raf = requestAnimationFrame(update);
     };
     raf = requestAnimationFrame(update);
