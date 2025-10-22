@@ -155,7 +155,7 @@ export default function TerminalSection({
       case "help": {
         pushEntry(
           <div>
-            Available commands: <span className="text-emerald-400">help</span>, <span className="text-emerald-400">others</span>, <span className="text-emerald-400">aboutme</span>, <span className="te[...]
+            Available commands: <span className="text-emerald-400">help</span>, <span className="text-emerald-400">others</span>, <span className="text-emerald-400">aboutme</span>, <span className="text-emerald-400">clear</span>, <span className="text-emerald-400">rm</span>
           </div>
         );
         break;
