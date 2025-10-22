@@ -34,22 +34,19 @@ export default function TerminalSection({
   username = "user",
   hostname,
 }: TerminalSectionProps) {
-  const [output, setOutput] = useState<string>(""
-  );
+  const [output, setOutput] = useState<string>("");
   const [typingDone, setTypingDone] = useState<boolean>(false);
   const sectionRef = useRef<HTMLElement | null>(null);
   const [inView, setInView] = useState<boolean>(false);
   const contentRef = useRef<string>("");
   const timeoutRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [input, setInput] = useState<string>(""
-  );
+  const [input, setInput] = useState<string>("");
   const [entries, setEntries] = useState<Array<React.ReactNode>>([]);
   const [isGlitch, setIsGlitch] = useState<boolean>(false);
   const idxRef = useRef<number>(0);
   const bufferRef = useRef<string>("");
-  const [hostLabel, setHostLabel] = useState<string>(""
-  );
+  const [hostLabel, setHostLabel] = useState<string>("");
   const [pendingConfirm, setPendingConfirm] = useState<null | "lockdown">(null);
 
   useEffect(() => {
@@ -234,13 +231,11 @@ export default function TerminalSection({
     }
   };
 
-  // Helper: decide if a line is the title line we want larger (second line)
   const isTitleLine = (s: string) => {
     const t = s.trim();
     return t === "ViaLonga, Somniviva" || t === "ViaLonga, Somniviva.";
   };
 
-  // Render the typed output with per-line styling
   const renderTypedOutput = () => {
     const parts = output.split("\n");
     return parts.map((line, i) => (
