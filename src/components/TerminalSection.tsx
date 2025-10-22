@@ -247,8 +247,16 @@ export default function TerminalSection({
       }}
       tabIndex={-1}
     >
-      {/* prismatic burst background */}
-      <div className="pointer-events-none absolute inset-0 z-0">
+      {/* backgrounds: mobile uses original blobs, desktop uses prismatic burst */}
+      {/* Mobile/Small screens: original blurry blobs */}
+      <div className="pointer-events-none absolute inset-0 z-0 md:hidden">
+        <div className="blob-animate-1 absolute -top-24 -left-24 h-80 w-80 rounded-full bg-sky-400/40 blur-3xl mix-blend-screen" />
+        <div className="blob-animate-2 absolute top-1/3 -right-16 h-96 w-96 rounded-full bg-fuchsia-400/35 blur-3xl mix-blend-screen" />
+        <div className="blob-animate-3 absolute bottom-[-10%] left-1/4 h-[28rem] w-[28rem] rounded-full bg-emerald-400/30 blur-[72px] mix-blend-screen" />
+      </div>
+
+      {/* Desktop and up: Prismatic Burst */}
+      <div className="pointer-events-none absolute inset-0 z-0 hidden md:block">
         <PrismaticBurst
           intensity={1.6}
           speed={0.55}
