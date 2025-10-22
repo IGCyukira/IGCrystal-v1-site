@@ -13,6 +13,8 @@ export type TerminalSectionProps = {
 };
 
 const defaultLines = [
+  ":)",
+  "",
   "ViaLonga, Somniviva",
   "",
   "The wind silvers the plain; footprints fade into stars. Shadows stack like old dreams.",
@@ -229,6 +231,24 @@ export default function TerminalSection({
     }
   };
 
+  const isTitleLine = (s: string) => {
+    const t = s.trim();
+    return t === "ViaLonga, Somniviva" || t === "ViaLonga, Somniviva.";
+  };
+
+  const renderTypedOutput = () => {
+    const parts = output.split("\n");
+    return parts.map((line, i) => (
+      <span
+        key={i}
+        className={isTitleLine(line) ? "text-2xl sm:text-3xl md:text-4xl leading-tight" : undefined}
+      >
+        {line}
+        {i < parts.length - 1 ? "\n" : ""}
+      </span>
+    ));
+  };
+
   return (
     <section
       ref={sectionRef as React.RefObject<HTMLElement>}
@@ -269,17 +289,17 @@ export default function TerminalSection({
       </div>
 
       <div className="terminal-font w-full max-w-5xl relative z-10">
-        <pre className="whitespace-pre-wrap leading-7 text-[14px] sm:text-[15px] md:text-base first-line:text-2xl sm:first-line:text-3xl md:first-line:text-4xl">
-{output}
+        <pre className="whitespace-pre-wrap leading-7 text-[14px] sm:text-[15px] md:text-base first-line:text-6xl sm:first-line:text-7xl md:first-line:text-8xl first-line:leading-none">
+{renderTypedOutput()}
 {typingDone && entries.length > 0 ? (
-  <>
-    {"\n"}
-    {entries.map((n, i) => (<div key={i}>{n}</div>))}
-  </>
-) : null}
+  <> 
+    {"\n"} 
+    {entries.map((n, i) => (<div key={i}>{n}</div>))} 
+  </> 
+) : null} 
 {typingDone ? (
-  <>
-    {"\n"}
+  <> 
+    {"\n"} 
     <div className="flex flex-nowrap items-center gap-0 whitespace-nowrap break-normal overflow-x-auto max-w-full">
       <span className="text-emerald-400">{username}</span>
       <span>@</span>
@@ -300,7 +320,7 @@ export default function TerminalSection({
         className="outline-none inline-block min-w-[1px] bg-transparent border-0 p-0 m-0 text-inherit w-auto shrink-0"
       />
     </div>
-  </>
+  </> 
 ) : (
   <span>|</span>
 )}
