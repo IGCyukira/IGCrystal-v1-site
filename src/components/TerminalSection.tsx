@@ -14,6 +14,7 @@ export type TerminalSectionProps = {
 
 const defaultLines = [
   ":)",
+  "",
   "ViaLonga, Somniviva",
   "",
   "The wind silvers the plain; footprints fade into stars. Shadows stack like old dreams.",
