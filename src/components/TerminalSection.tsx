@@ -1,4 +1,4 @@
-"use client";
+use client;
 
 import { useEffect, useRef, useState } from "react";
 import PrismaticBurst from "@/components/ui/PrismaticBurst";
@@ -33,19 +33,22 @@ export default function TerminalSection({
   username = "user",
   hostname,
 }: TerminalSectionProps) {
-  const [output, setOutput] = useState<string>("");
+  const [output, setOutput] = useState<string>(""
+  );
   const [typingDone, setTypingDone] = useState<boolean>(false);
   const sectionRef = useRef<HTMLElement | null>(null);
   const [inView, setInView] = useState<boolean>(false);
   const contentRef = useRef<string>("");
   const timeoutRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [input, setInput] = useState<string>("");
+  const [input, setInput] = useState<string>(""
+  );
   const [entries, setEntries] = useState<Array<React.ReactNode>>([]);
   const [isGlitch, setIsGlitch] = useState<boolean>(false);
   const idxRef = useRef<number>(0);
   const bufferRef = useRef<string>("");
-  const [hostLabel, setHostLabel] = useState<string>("");
+  const [hostLabel, setHostLabel] = useState<string>(""
+  );
   const [pendingConfirm, setPendingConfirm] = useState<null | "lockdown">(null);
 
   useEffect(() => {
@@ -230,6 +233,26 @@ export default function TerminalSection({
     }
   };
 
+  // Helper: decide if a line is the title line we want larger (second line)
+  const isTitleLine = (s: string) => {
+    const t = s.trim();
+    return t === "ViaLonga, Somniviva" || t === "ViaLonga, Somniviva.";
+  };
+
+  // Render the typed output with per-line styling
+  const renderTypedOutput = () => {
+    const parts = output.split("\n");
+    return parts.map((line, i) => (
+      <span
+        key={i}
+        className={isTitleLine(line) ? "text-2xl sm:text-3xl md:text-4xl leading-tight" : undefined}
+      >
+        {line}
+        {i < parts.length - 1 ? "\n" : ""}
+      </span>
+    ));
+  };
+
   return (
     <section
       ref={sectionRef as React.RefObject<HTMLElement>}
@@ -271,16 +294,16 @@ export default function TerminalSection({
 
       <div className="terminal-font w-full max-w-5xl relative z-10">
         <pre className="whitespace-pre-wrap leading-7 text-[14px] sm:text-[15px] md:text-base first-line:text-6xl sm:first-line:text-7xl md:first-line:text-8xl first-line:leading-none">
-{output}
+{renderTypedOutput()}
 {typingDone && entries.length > 0 ? (
-  <>
-    {"\n"}
-    {entries.map((n, i) => (<div key={i}>{n}</div>))}
-  </>
-) : null}
+  <> 
+    {"\n"} 
+    {entries.map((n, i) => (<div key={i}>{n}</div>))} 
+  </> 
+) : null} 
 {typingDone ? (
-  <>
-    {"\n"}
+  <> 
+    {"\n"} 
     <div className="flex flex-nowrap items-center gap-0 whitespace-nowrap break-normal overflow-x-auto max-w-full">
       <span className="text-emerald-400">{username}</span>
       <span>@</span>
@@ -301,7 +324,7 @@ export default function TerminalSection({
         className="outline-none inline-block min-w-[1px] bg-transparent border-0 p-0 m-0 text-inherit w-auto shrink-0"
       />
     </div>
-  </>
+  </> 
 ) : (
   <span>|</span>
 )}
