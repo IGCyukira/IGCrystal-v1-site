@@ -10,7 +10,7 @@ export default function HeroSection() {
   const uiRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <section className="relative snap-start min-h-[100svh]">
+    <section className="relative snap-start min-h-[100svh] snap-section overflow-hidden">
       <CarouselBanner onParallax={setParallax} />
       {/* UI with slight parallax (smaller amplitude for depth) */}
       <div
