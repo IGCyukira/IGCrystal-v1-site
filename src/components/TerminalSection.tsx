@@ -114,39 +114,6 @@ export default function TerminalSection({
   }, []);
 
   useEffect(() => {
-    const host = sectionRef.current;
-    if (!host) return;
-    let startX = 0;
-    let startY = 0;
-    const horizontalThreshold = 10;
-
-    const onTouchStart = (ev: TouchEvent) => {
-      const touch = ev.touches[0];
-      if (!touch) return;
-      startX = touch.clientX;
-      startY = touch.clientY;
-    };
-
-    const onTouchMove = (ev: TouchEvent) => {
-      if (ev.touches.length !== 1) return;
-      const touch = ev.touches[0];
-      const dx = touch.clientX - startX;
-      const dy = touch.clientY - startY;
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > horizontalThreshold) {
-        ev.preventDefault();
-      }
-    };
-
-    host.addEventListener("touchstart", onTouchStart, { passive: true });
-    host.addEventListener("touchmove", onTouchMove, { passive: false });
-
-    return () => {
-      host.removeEventListener("touchstart", onTouchStart);
-      host.removeEventListener("touchmove", onTouchMove);
-    };
-  }, []);
-
-  useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
     const viewport = window.visualViewport;
     const host = sectionRef.current;
@@ -312,7 +279,7 @@ export default function TerminalSection({
     <section
       ref={sectionRef as React.RefObject<HTMLElement>}
       id={id}
-      className={`relative overflow-hidden overflow-x-hidden snap-start min-h-[100svh] w-full bg-black text-white flex items-center justify-center px-6 py-10 ${isGlitch ? "animate-pulse" : ""} ${className ?? ""}`}
+      className={`relative overflow-hidden snap-start min-h-[100svh] w-full bg-black text-white flex items-center justify-center px-6 py-10 ${isGlitch ? "animate-pulse" : ""} ${className ?? ""}`}
       onClick={() => { try { inputRef.current?.focus(); } catch {} }}
       onKeyDown={(e) => {
         if (!typingDone) {
@@ -324,7 +291,6 @@ export default function TerminalSection({
           }
         }
       }}
-      style={{ touchAction: "pan-y" }}
       tabIndex={-1}
     >
       {/* backgrounds: mobile uses original blobs, desktop uses prismatic burst */}
