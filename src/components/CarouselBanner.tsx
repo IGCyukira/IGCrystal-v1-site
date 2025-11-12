@@ -68,6 +68,24 @@ export default function CarouselBanner({
   }, [inView, baseUrl, nextSrc]);
 
   useEffect(() => {
+    if (inView) return;
+    targetRef.current.x = 0;
+    targetRef.current.y = 0;
+    currentRef.current.x = 0;
+    currentRef.current.y = 0;
+    lastTranslateRef.current.x = 0;
+    lastTranslateRef.current.y = 0;
+    if (rafRefParallax.current) {
+      cancelAnimationFrame(rafRefParallax.current);
+      rafRefParallax.current = null;
+    }
+    const wrap = parallaxRef.current;
+    if (wrap) {
+      wrap.style.transform = "";
+    }
+  }, [inView]);
+
+  useEffect(() => {
     if (reducedMotion || !inView) return;
     const host = sectionRef.current;
     const wrap = parallaxRef.current;
