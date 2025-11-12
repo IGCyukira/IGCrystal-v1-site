@@ -41,6 +41,14 @@
 /* Enhanced smooth scroll behavior */
 html {
   scroll-behavior: smooth;
+  width: 100%;
+}
+
+body {
+  width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 /* Hide scrollbars globally but keep scrolling */
