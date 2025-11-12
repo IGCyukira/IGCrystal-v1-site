@@ -48,7 +48,6 @@ export default function TerminalSection({
   const bufferRef = useRef<string>("");
   const [hostLabel, setHostLabel] = useState<string>("");
   const [pendingConfirm, setPendingConfirm] = useState<null | "lockdown">(null);
-  const [allowAutoFocus, setAllowAutoFocus] = useState<boolean>(true);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -103,44 +102,15 @@ export default function TerminalSection({
   }, [inView, typingDone, typingSpeedMs]);
 
   useEffect(() => {
-    if (!allowAutoFocus) return;
     if (typingDone && inView && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [typingDone, inView, allowAutoFocus]);
+  }, [typingDone, inView]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setHostLabel(window.location.hostname || "");
-      const pointerFine = window.matchMedia ? window.matchMedia("(pointer: fine)").matches : true;
-      setAllowAutoFocus(pointerFine);
     }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
-    const viewport = window.visualViewport;
-    const host = sectionRef.current;
-    if (!host) return;
-
-    const handleViewportShift = () => {
-      const offsetX = viewport.offsetLeft || 0;
-      if (Math.abs(offsetX) > 0.5) {
-        host.style.transform = `translate3d(${-offsetX}px, 0, 0)`;
-      } else {
-        host.style.transform = "";
-      }
-    };
-
-    viewport.addEventListener("scroll", handleViewportShift);
-    viewport.addEventListener("resize", handleViewportShift);
-    handleViewportShift();
-
-    return () => {
-      viewport.removeEventListener("scroll", handleViewportShift);
-      viewport.removeEventListener("resize", handleViewportShift);
-      host.style.transform = "";
-    };
   }, []);
 
   const pushEntry = (node: React.ReactNode) => {
