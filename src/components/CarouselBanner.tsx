@@ -45,8 +45,10 @@ export default function CarouselBanner({
   const currentRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastTranslateRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const baseScale = 1.06; 
+  const activeScaleRef = useRef<number>(baseScale);
   const movePx = 14;
   const reducedMotion = typeof window !== "undefined" && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+  const resetTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -68,7 +70,25 @@ export default function CarouselBanner({
   }, [inView, baseUrl, nextSrc]);
 
   useEffect(() => {
-    if (inView) return;
+    const wrap = parallaxRef.current;
+    if (!wrap) return;
+    const node = wrap;
+
+    if (inView) {
+      if (resetTimerRef.current !== null) {
+        window.clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+      node.style.transition = "";
+      node.style.opacity = "";
+      return () => {
+        if (resetTimerRef.current !== null) {
+          window.clearTimeout(resetTimerRef.current);
+          resetTimerRef.current = null;
+        }
+      };
+    }
+
     targetRef.current.x = 0;
     targetRef.current.y = 0;
     currentRef.current.x = 0;
@@ -79,17 +99,37 @@ export default function CarouselBanner({
       cancelAnimationFrame(rafRefParallax.current);
       rafRefParallax.current = null;
     }
-    const wrap = parallaxRef.current;
-    if (wrap) {
-      wrap.style.transform = "";
+
+    const scale = activeScaleRef.current || baseScale;
+    node.style.transition = "transform 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease";
+    node.style.transform = `scale(${scale}) translate3d(0px, 0px, 0)`;
+    node.style.opacity = "0.94";
+
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
     }
-  }, [inView]);
+    resetTimerRef.current = window.setTimeout(() => {
+      node.style.transition = "";
+      node.style.opacity = "";
+      resetTimerRef.current = null;
+    }, 400);
+
+    return () => {
+      if (resetTimerRef.current !== null) {
+        window.clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+      node.style.transition = "";
+      node.style.opacity = "";
+    };
+  }, [inView, baseScale]);
 
   useEffect(() => {
     if (reducedMotion || !inView) return;
     const host = sectionRef.current;
     const wrap = parallaxRef.current;
     if (!host || !wrap) return;
+    activeScaleRef.current = baseScale;
 
     // 仅在没有任何 transform 时设置初始缩放，避免离开/重入时尺寸跳变
     if (!wrap.style.transform) {
@@ -173,6 +213,7 @@ export default function CarouselBanner({
     const mobileMovePx = 20;      
     const mobileBuffer = 2;        
     const mobileFreezeBand = 3;   
+    activeScaleRef.current = mobileScale;
     let attached = false;
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
