@@ -68,6 +68,24 @@ export default function CarouselBanner({
   }, [inView, baseUrl, nextSrc]);
 
   useEffect(() => {
+    if (inView) return;
+    targetRef.current.x = 0;
+    targetRef.current.y = 0;
+    currentRef.current.x = 0;
+    currentRef.current.y = 0;
+    lastTranslateRef.current.x = 0;
+    lastTranslateRef.current.y = 0;
+    if (rafRefParallax.current) {
+      cancelAnimationFrame(rafRefParallax.current);
+      rafRefParallax.current = null;
+    }
+    const wrap = parallaxRef.current;
+    if (wrap) {
+      wrap.style.transform = "";
+    }
+  }, [inView]);
+
+  useEffect(() => {
     if (reducedMotion || !inView) return;
     const host = sectionRef.current;
     const wrap = parallaxRef.current;
@@ -248,6 +266,39 @@ export default function CarouselBanner({
   }, [reducedMotion, inView, onParallax]);
 
   useEffect(() => {
+    const host = sectionRef.current;
+    if (!host) return;
+    let startX = 0;
+    let startY = 0;
+    const horizontalThreshold = 10;
+
+    const onTouchStart = (ev: TouchEvent) => {
+      const touch = ev.touches[0];
+      if (!touch) return;
+      startX = touch.clientX;
+      startY = touch.clientY;
+    };
+
+    const onTouchMove = (ev: TouchEvent) => {
+      if (ev.touches.length !== 1) return;
+      const touch = ev.touches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > horizontalThreshold) {
+        ev.preventDefault();
+      }
+    };
+
+    host.addEventListener('touchstart', onTouchStart, { passive: true });
+    host.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    return () => {
+      host.removeEventListener('touchstart', onTouchStart);
+      host.removeEventListener('touchmove', onTouchMove);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!inView) {
       if (timerRef.current) window.clearInterval(timerRef.current);
       timerRef.current = null;
@@ -273,34 +324,43 @@ export default function CarouselBanner({
   }, [inView, baseUrl, intervalMs, nextReady, nextSrc]);
 
   return (
-    <section ref={sectionRef as React.RefObject<HTMLElement>} className={`relative h-[100svh] w-full overflow-hidden ${className ?? ""}`}>
+    <section
+      ref={sectionRef as React.RefObject<HTMLElement>}
+      className={`relative h-[100svh] w-full overflow-hidden overflow-x-hidden ${className ?? ""}`}
+      style={{ touchAction: "pan-y" }}
+    >
       {/* Parallax wrapper for images */}
-      <div ref={parallaxRef} className="absolute inset-0 will-change-transform">
-      <Image
-        loader={wenturcLoader}
-        key={currentSrc}
-        src={currentSrc}
-        alt="banner-current"
-        fill
-        priority
-        sizes="(max-width: 768px) 100vw, 100vw"
-        className={`absolute inset-0 h-full w-full object-cover select-none transition duration-700 ease-out will-change-transform ${showNext ? "opacity-0 scale-105" : currentLoaded ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
-        onLoad={() => setCurrentLoaded(true)}
-        draggable={false}
-      />
-      {nextSrc && (
-      <Image
-        loader={wenturcLoader}
-        key={nextSrc}
-        src={nextSrc}
-        alt="banner-next"
-        fill
-        sizes="(max-width: 768px) 100vw, 100vw"
-        loading="eager"
-        className={`absolute inset-0 h-full w-full object-cover select-none transition duration-700 ease-out will-change-transform ${showNext && nextReady ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
-        onLoad={() => setNextReady(true)}
-        draggable={false}
-      />)}
+      <div
+        ref={parallaxRef}
+        className="absolute inset-0 will-change-transform"
+        style={{ transformOrigin: "center", WebkitTransformOrigin: "center" }}
+      >
+        <Image
+          loader={wenturcLoader}
+          key={currentSrc}
+          src={currentSrc}
+          alt="banner-current"
+          fill
+          priority
+          sizes="100vw"
+          className={`absolute inset-0 h-full w-full object-cover select-none transition duration-700 ease-out will-change-transform ${showNext ? "opacity-0 scale-105" : currentLoaded ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
+          onLoad={() => setCurrentLoaded(true)}
+          draggable={false}
+        />
+        {nextSrc && (
+          <Image
+            loader={wenturcLoader}
+            key={nextSrc}
+            src={nextSrc}
+            alt="banner-next"
+            fill
+            sizes="100vw"
+            loading="eager"
+            className={`absolute inset-0 h-full w-full object-cover select-none transition duration-700 ease-out will-change-transform ${showNext && nextReady ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
+            onLoad={() => setNextReady(true)}
+            draggable={false}
+          />
+        )}
       </div>
       <div
         className={`absolute inset-0 bg-black/40 pointer-events-none ${overlayClassName ?? ""}`}

@@ -41,6 +41,14 @@
 /* Enhanced smooth scroll behavior */
 html {
   scroll-behavior: smooth;
+  width: 100%;
+}
+
+body {
+  width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 /* Hide scrollbars globally but keep scrolling */
@@ -210,6 +218,19 @@ html {
 /* Entrance animations */
 .animate-fade-in-scale-soft {
   animation: fadeInScaleSoft 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.snap-section {
+  width: min(100%, 100vw);
+  margin-left: auto;
+  margin-right: auto;
+  overflow-x: hidden;
+}
+
+@supports (overflow: clip) {
+  .snap-section {
+    overflow-x: clip;
+  }
 }
 
 .animate-fade-in-overlay {
