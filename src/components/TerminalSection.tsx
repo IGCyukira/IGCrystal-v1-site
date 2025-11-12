@@ -48,6 +48,7 @@ export default function TerminalSection({
   const bufferRef = useRef<string>("");
   const [hostLabel, setHostLabel] = useState<string>("");
   const [pendingConfirm, setPendingConfirm] = useState<null | "lockdown">(null);
+  const [allowAutoFocus, setAllowAutoFocus] = useState<boolean>(true);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -102,14 +103,17 @@ export default function TerminalSection({
   }, [inView, typingDone, typingSpeedMs]);
 
   useEffect(() => {
+    if (!allowAutoFocus) return;
     if (typingDone && inView && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [typingDone, inView]);
+  }, [typingDone, inView, allowAutoFocus]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setHostLabel(window.location.hostname || "");
+      const pointerFine = window.matchMedia ? window.matchMedia("(pointer: fine)").matches : true;
+      setAllowAutoFocus(pointerFine);
     }
   }, []);
 
