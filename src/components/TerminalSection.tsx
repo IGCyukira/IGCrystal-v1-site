@@ -113,6 +113,32 @@ export default function TerminalSection({
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const host = sectionRef.current;
+    if (!host) return;
+
+    const handleViewportShift = () => {
+      const offsetX = viewport.offsetLeft || 0;
+      if (Math.abs(offsetX) > 0.5) {
+        host.style.transform = `translate3d(${-offsetX}px, 0, 0)`;
+      } else {
+        host.style.transform = "";
+      }
+    };
+
+    viewport.addEventListener("scroll", handleViewportShift);
+    viewport.addEventListener("resize", handleViewportShift);
+    handleViewportShift();
+
+    return () => {
+      viewport.removeEventListener("scroll", handleViewportShift);
+      viewport.removeEventListener("resize", handleViewportShift);
+      host.style.transform = "";
+    };
+  }, []);
+
   const pushEntry = (node: React.ReactNode) => {
     setEntries((prev) => [...prev, node]);
   };
