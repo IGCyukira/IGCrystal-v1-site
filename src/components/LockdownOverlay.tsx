@@ -184,7 +184,7 @@ export default function LockdownOverlay() {
     const a = audioRef.current;
     if (!a) return;
 
-    const hlsUrl = "https://hls.wenturc.com/music-hls/Laur-null-feat/playlist.m3u8";
+    const hlsUrl = "https://hls.revaea.com/music-hls/Laur-null-feat/playlist.m3u8";
     const tryAutoplay = () => {
       return a.play().catch(() => {
         try { a.muted = true; } catch {}

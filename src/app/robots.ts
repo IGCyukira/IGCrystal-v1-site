@@ -25,7 +25,7 @@ export default function robots(): MetadataRoute.Robots {
     sitemap: [
         `${baseUrl}/sitemap.xml`,
         "https://blog.IGCrystal.icu/sitemap.xml",
-        "https://wenturc.com/sitemap.xml",
+        "https://revaea.com/sitemap.xml",
     ],
   };
 }

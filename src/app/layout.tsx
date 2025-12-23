@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   applicationName: "IGCrystal",
   keywords: [
     "IGCrystal",
-    "WentUrc"
+    "Revaea"
   ],
   authors: [{ name: "IGCrystal" }],
   creator: "IGCrystal",

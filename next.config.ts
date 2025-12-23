@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "api.wenturc.com",
+        hostname: "api.revaea.com",
         pathname: "/**",
       },
     ],

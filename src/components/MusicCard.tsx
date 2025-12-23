@@ -44,8 +44,8 @@ function buildTrackLabel(track: TrackInfo | undefined): string {
 
 export default function MusicCard({
   className,
-  playlistUrl = "https://hls.wenturc.com/api/music/playlist",
-  streamingBaseUrl = "https://hls.wenturc.com",
+  playlistUrl = "https://hls.revaea.com/api/music/playlist",
+  streamingBaseUrl = "https://hls.revaea.com",
   animate = true,
   defaultArtwork,
 }: MusicCardProps) {

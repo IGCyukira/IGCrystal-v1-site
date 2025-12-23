@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import wenturcLoader from "@/lib/wenturcLoader";
+import revaeaLoader from "@/lib/revaeaLoader";
 import { useEffect, useRef, useState } from "react";
 
 export type CarouselBannerProps = {
@@ -20,7 +20,7 @@ function makeRandomUrl(base: string): string {
 }
 
 export default function CarouselBanner({
-  baseUrl = "https://api.wenturc.com",
+  baseUrl = "https://api.revaea.com",
   intervalMs = 5000,
   className,
   overlayClassName,
@@ -377,7 +377,7 @@ export default function CarouselBanner({
         style={{ transformOrigin: "center", WebkitTransformOrigin: "center" }}
       >
         <Image
-          loader={wenturcLoader}
+          loader={revaeaLoader}
           key={currentSrc}
           src={currentSrc}
           alt="banner-current"
@@ -390,7 +390,7 @@ export default function CarouselBanner({
         />
         {nextSrc && (
           <Image
-            loader={wenturcLoader}
+            loader={revaeaLoader}
             key={nextSrc}
             src={nextSrc}
             alt="banner-next"

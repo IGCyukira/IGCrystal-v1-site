@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import wenturcLoader from "@/lib/wenturcLoader";
+import revaeaLoader from "@/lib/revaeaLoader";
 import { useState } from "react";
 
 export type FullScreenBannerProps = {
@@ -15,7 +15,7 @@ export default function FullScreenBanner({ src, alt = "banner", className, overl
   return (
     <section className={`relative h-[100svh] w-full overflow-hidden ${className ?? ""}`}>
       <Image
-        loader={wenturcLoader}
+        loader={revaeaLoader}
         src={src}
         alt={alt}
         fill
