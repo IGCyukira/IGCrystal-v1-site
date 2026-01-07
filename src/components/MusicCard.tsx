@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatTime } from "@/lib/time";
 import Hls from "hls.js";
-import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2, Shuffle, ListOrdered, Repeat } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2, Shuffle, ListOrdered, Repeat, Loader2 } from "lucide-react";
 
 export type MusicCardProps = {
   className?: string;
@@ -56,6 +56,9 @@ export default function MusicCard({
   const [tracks, setTracks] = useState<TrackInfo[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isBuffering, setIsBuffering] = useState<boolean>(false);
+  const [showBuffering, setShowBuffering] = useState<boolean>(false);
+  const bufferingTimerRef = useRef<number | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(70);
   const [duration, setDuration] = useState<number>(0);
@@ -102,23 +105,43 @@ export default function MusicCard({
     return pool[Math.floor(Math.random() * pool.length)];
   }, [tracks.length]);
 
+  const restartCurrent = useCallback((autoplay: boolean) => {
+    const media = audioRef.current;
+    if (!media) return;
+    try { media.currentTime = 0; } catch {}
+    setCurrentTime(0);
+    endedHandledRef.current = false;
+    if (autoplay) {
+      setIsBuffering(true);
+      media.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    }
+  }, []);
+
   const handleNext = useCallback(() => {
     if (tracks.length === 0) return;
+    if (tracks.length <= 1) {
+      restartCurrent(isPlaying);
+      return;
+    }
     if (randomMode) {
       setCurrentIndex((i) => getRandomIndex(i));
     } else {
       setCurrentIndex((i) => (i + 1) % tracks.length);
     }
-  }, [getRandomIndex, randomMode, tracks.length]);
+  }, [getRandomIndex, isPlaying, randomMode, restartCurrent, tracks.length]);
 
   const handlePrev = useCallback(() => {
     if (tracks.length === 0) return;
+    if (tracks.length <= 1) {
+      restartCurrent(isPlaying);
+      return;
+    }
     if (randomMode) {
       setCurrentIndex((i) => getRandomIndex(i));
     } else {
       setCurrentIndex((i) => (i - 1 + tracks.length) % tracks.length);
     }
-  }, [getRandomIndex, randomMode, tracks.length]);
+  }, [getRandomIndex, isPlaying, randomMode, restartCurrent, tracks.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,6 +217,7 @@ export default function MusicCard({
       try { media.currentTime = 0; } catch {}
       endedHandledRef.current = false;
       lastTrackUrlRef.current = currentHlsUrl;
+      setIsBuffering(true);
     }
 
     if (isPlaying) {
@@ -208,8 +232,59 @@ export default function MusicCard({
   useEffect(() => {
     const media = audioRef.current;
     if (!media) return;
-    media.volume = volume / 100;
+    const visualVolume = Math.max(0, Math.min(100, volume)) / 100;
+    const curved = Math.max(0, Math.min(1, visualVolume * visualVolume));
+    media.volume = curved;
   }, [volume]);
+
+  useEffect(() => {
+    const media = audioRef.current;
+    if (!media) return;
+
+    const onWaiting = () => setIsBuffering(true);
+    const onPlaying = () => setIsBuffering(false);
+    const onCanPlay = () => setIsBuffering(false);
+    const onPause = () => setIsBuffering(false);
+
+    media.addEventListener("waiting", onWaiting);
+    media.addEventListener("playing", onPlaying);
+    media.addEventListener("canplay", onCanPlay);
+    media.addEventListener("pause", onPause);
+
+    return () => {
+      media.removeEventListener("waiting", onWaiting);
+      media.removeEventListener("playing", onPlaying);
+      media.removeEventListener("canplay", onCanPlay);
+      media.removeEventListener("pause", onPause);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isBuffering) {
+      if (bufferingTimerRef.current) {
+        window.clearTimeout(bufferingTimerRef.current);
+        bufferingTimerRef.current = null;
+      }
+      setShowBuffering(false);
+      return;
+    }
+
+    if (bufferingTimerRef.current) {
+      window.clearTimeout(bufferingTimerRef.current);
+      bufferingTimerRef.current = null;
+    }
+
+    bufferingTimerRef.current = window.setTimeout(() => {
+      setShowBuffering(true);
+    }, 150);
+
+    return () => {
+      if (bufferingTimerRef.current) {
+        window.clearTimeout(bufferingTimerRef.current);
+        bufferingTimerRef.current = null;
+      }
+    };
+  }, [isBuffering]);
 
   useEffect(() => {
     const media = audioRef.current;
@@ -227,6 +302,12 @@ export default function MusicCard({
           endedHandledRef.current = false; 
         } catch {}
       } else {
+        if (tracks.length <= 1) {
+          setIsPlaying(false);
+          setIsBuffering(false);
+          endedHandledRef.current = false;
+          return;
+        }
         handleNext();
       }
     };
@@ -239,7 +320,7 @@ export default function MusicCard({
       media.removeEventListener("loadedmetadata", onMeta);
       media.removeEventListener("ended", onEnd);
     };
-  }, [handleNext, loopOne]);
+  }, [handleNext, loopOne, tracks.length]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -305,6 +386,7 @@ export default function MusicCard({
       if (!loadedUrlRef.current) {
         loadCurrent();
       }
+      setIsBuffering(true);
       media.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
   }, [isPlaying, currentHlsUrl, loadCurrent]);
@@ -457,9 +539,15 @@ export default function MusicCard({
           type="button"
           onClick={togglePlay}
           className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black text-white dark:bg-white dark:text-black hover:opacity-90"
-          aria-label={isPlaying ? "暂停" : "播放"}
+          aria-label={showBuffering ? "缓冲中" : (isPlaying ? "暂停" : "播放")}
         >
-          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+          {showBuffering ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : isPlaying ? (
+            <Pause size={16} />
+          ) : (
+            <Play size={16} />
+          )}
         </button>
       </div>
 
