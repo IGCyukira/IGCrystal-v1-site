@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 export default function SmoothScrollEnhancer() {
   const lockedRef = useRef(false);
   const rafRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    try {
+      const snapContainer = document.querySelector('.snap-y') as HTMLElement | null;
+      if (!snapContainer) return;
+      snapContainer.scrollTop = 0;
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const smoothScrollTo = (element: Element, to: number, duration: number = 800) => {
@@ -14,7 +22,6 @@ export default function SmoothScrollEnhancer() {
 
       const animateScroll = (currentTime: number) => {
         if (lockedRef.current) {
-          // Abort animation when locked
           if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
           rafRef.current = null;
           return;
@@ -110,12 +117,6 @@ export default function SmoothScrollEnhancer() {
 
     const snapContainer = document.querySelector('.snap-y');
     if (snapContainer) {
-      try {
-        (snapContainer as HTMLElement).scrollTop = 0;
-        requestAnimationFrame(() => {
-          try { (snapContainer as HTMLElement).scrollTop = 0; } catch {}
-        });
-      } catch {}
       snapContainer.classList.add('enhanced-scroll');
       snapContainer.addEventListener('wheel', handleWheel, { passive: false });
     }
