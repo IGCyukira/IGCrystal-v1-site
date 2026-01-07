@@ -42,21 +42,27 @@ export default function SnapContainer({ className, snapClassName = "snap-y snap-
   const style = useMemo<CSSProperties | undefined>(() => {
     const s: CSSProperties = {};
     if (!snapReady) s.scrollSnapType = "none";
-    if (!visible) {
-      s.opacity = 0;
-      s.pointerEvents = "none";
-    }
-    s.transition = "opacity 900ms ease-out";
     return Object.keys(s).length ? s : undefined;
-  }, [snapReady, visible]);
+  }, [snapReady]);
 
   const mergedClassName = useMemo(() => {
     const base = className ?? "";
-    return snapReady ? `${base} ${snapClassName}`.trim() : base;
+    const withRelative = base.includes("relative") ? base : `${base} relative`;
+    return snapReady ? `${withRelative} ${snapClassName}`.trim() : withRelative.trim();
   }, [className, snapClassName, snapReady]);
 
   return (
     <main ref={elRef} data-snap-container className={mergedClassName} style={style}>
+      <div
+        aria-hidden
+        className="pointer-events-none fixed left-0 top-0 w-full bg-neutral-300 dark:bg-black"
+        style={{
+          height: "var(--app-height, 100dvh)",
+          opacity: visible ? 0 : 1,
+          transition: "opacity 900ms ease-out",
+          zIndex: 9999,
+        }}
+      />
       {children}
     </main>
   );
