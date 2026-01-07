@@ -24,7 +24,6 @@ export default function ViewportHeightFix() {
     const vv = window.visualViewport;
     if (vv) {
       vv.addEventListener("resize", update);
-      vv.addEventListener("scroll", update);
     }
     window.addEventListener("resize", update);
     window.addEventListener("orientationchange", update);
@@ -36,7 +35,6 @@ export default function ViewportHeightFix() {
       }
       if (vv) {
         vv.removeEventListener("resize", update);
-        vv.removeEventListener("scroll", update);
       }
       window.removeEventListener("resize", update);
       window.removeEventListener("orientationchange", update);

@@ -110,6 +110,12 @@ export default function SmoothScrollEnhancer() {
 
     const snapContainer = document.querySelector('.snap-y');
     if (snapContainer) {
+      try {
+        (snapContainer as HTMLElement).scrollTop = 0;
+        requestAnimationFrame(() => {
+          try { (snapContainer as HTMLElement).scrollTop = 0; } catch {}
+        });
+      } catch {}
       snapContainer.classList.add('enhanced-scroll');
       snapContainer.addEventListener('wheel', handleWheel, { passive: false });
     }
