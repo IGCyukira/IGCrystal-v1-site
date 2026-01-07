@@ -6,9 +6,34 @@ export default function SmoothScrollEnhancer() {
   const lockedRef = useRef(false);
   const rafRef = useRef<number | null>(null);
 
+  const getSnapStops = (container: Element) => {
+    const sections = Array.from(container.querySelectorAll('.snap-section')) as HTMLElement[];
+    const stops = sections
+      .map((el) => el.offsetTop)
+      .filter((v) => Number.isFinite(v))
+      .sort((a, b) => a - b);
+    // Ensure 0 is a stop.
+    if (stops.length === 0 || stops[0] !== 0) stops.unshift(0);
+    return stops;
+  };
+
+  const closestStopIndex = (stops: number[], scrollTop: number) => {
+    if (stops.length === 0) return 0;
+    let bestI = 0;
+    let bestD = Math.abs(stops[0] - scrollTop);
+    for (let i = 1; i < stops.length; i++) {
+      const d = Math.abs(stops[i] - scrollTop);
+      if (d < bestD) {
+        bestD = d;
+        bestI = i;
+      }
+    }
+    return bestI;
+  };
+
   useLayoutEffect(() => {
     try {
-      const snapContainer = document.querySelector('.snap-y') as HTMLElement | null;
+      const snapContainer = document.querySelector('[data-snap-container]') as HTMLElement | null;
       if (!snapContainer) return;
       snapContainer.scrollTop = 0;
     } catch {}
@@ -45,36 +70,33 @@ export default function SmoothScrollEnhancer() {
       const target = wheelEvent.currentTarget as Element;
       if (!target) return;
 
-      const isSnapContainer = target.classList.contains('snap-y') || 
-                              target.classList.contains('snap-mandatory');
-      
-  if (!isSnapContainer) return;
+      const isSnapContainer = (target as HTMLElement).hasAttribute?.('data-snap-container');
+      if (!isSnapContainer) return;
   if (lockedRef.current) { wheelEvent.preventDefault(); return; }
       if (Math.abs(wheelEvent.deltaY) < 10) return;
 
       wheelEvent.preventDefault();
 
-      const containerHeight = target.clientHeight;
-      const currentScroll = target.scrollTop;
-      const maxScroll = target.scrollHeight - containerHeight;
+      const container = target as HTMLElement;
+      const currentScroll = container.scrollTop;
       const direction = wheelEvent.deltaY > 0 ? 1 : -1;
-      const targetScroll = Math.max(0, Math.min(maxScroll, 
-        Math.round(currentScroll / containerHeight + direction) * containerHeight
-      ));
+      const stops = getSnapStops(container);
+      const idx = closestStopIndex(stops, currentScroll);
+      const nextIdx = Math.max(0, Math.min(stops.length - 1, idx + direction));
+      const targetScroll = stops[nextIdx] ?? 0;
 
-      if (Math.abs(targetScroll - currentScroll) > 50) {
-        smoothScrollTo(target, targetScroll, 600);
-      }
+      if (Math.abs(targetScroll - currentScroll) > 50) smoothScrollTo(container, targetScroll, 600);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-  const target = document.querySelector('.snap-y');
+  const target = document.querySelector('[data-snap-container]');
       if (!target) return;
   if (lockedRef.current) { e.preventDefault(); return; }
 
-      const containerHeight = target.clientHeight;
-      const currentScroll = target.scrollTop;
-      const maxScroll = target.scrollHeight - containerHeight;
+      const container = target as HTMLElement;
+      const currentScroll = container.scrollTop;
+      const stops = getSnapStops(container);
+      const idx = closestStopIndex(stops, currentScroll);
 
       let targetScroll: number | null = null;
 
@@ -82,16 +104,12 @@ export default function SmoothScrollEnhancer() {
         case 'ArrowDown':
         case 'PageDown':
           e.preventDefault();
-          targetScroll = Math.min(maxScroll, 
-            Math.round(currentScroll / containerHeight + 1) * containerHeight
-          );
+          targetScroll = stops[Math.min(stops.length - 1, idx + 1)] ?? null;
           break;
         case 'ArrowUp':
         case 'PageUp':
           e.preventDefault();
-          targetScroll = Math.max(0, 
-            Math.round(currentScroll / containerHeight - 1) * containerHeight
-          );
+          targetScroll = stops[Math.max(0, idx - 1)] ?? null;
           break;
         case 'Home':
           e.preventDefault();
@@ -99,23 +117,21 @@ export default function SmoothScrollEnhancer() {
           break;
         case 'End':
           e.preventDefault();
-          targetScroll = maxScroll;
+          targetScroll = stops[stops.length - 1] ?? null;
           break;
         case ' ':
           e.preventDefault();
           const direction = e.shiftKey ? -1 : 1;
-          targetScroll = Math.max(0, Math.min(maxScroll,
-            Math.round(currentScroll / containerHeight + direction) * containerHeight
-          ));
+          targetScroll = stops[Math.max(0, Math.min(stops.length - 1, idx + direction))] ?? null;
           break;
       }
 
       if (targetScroll !== null && Math.abs(targetScroll - currentScroll) > 50) {
-        smoothScrollTo(target, targetScroll, 500);
+        smoothScrollTo(container, targetScroll, 500);
       }
     };
 
-    const snapContainer = document.querySelector('.snap-y');
+    const snapContainer = document.querySelector('[data-snap-container]');
     if (snapContainer) {
       snapContainer.classList.add('enhanced-scroll');
       snapContainer.addEventListener('wheel', handleWheel, { passive: false });
