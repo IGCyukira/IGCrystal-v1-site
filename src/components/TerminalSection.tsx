@@ -253,7 +253,7 @@ export default function TerminalSection({
     <section
       ref={sectionRef as React.RefObject<HTMLElement>}
       id={id}
-      className={`relative snap-section overflow-hidden snap-start min-h-[100svh] w-full bg-black text-white flex items-center justify-center px-6 py-10 ${isGlitch ? "animate-pulse" : ""} ${className ?? ""}`}
+      className={`relative snap-section overflow-hidden snap-start min-h-[100svh] min-h-[100dvh] min-h-[var(--app-height)] w-full bg-black text-white flex items-center justify-center px-6 py-10 ${isGlitch ? "animate-pulse" : ""} ${className ?? ""}`}
       onClick={() => { try { inputRef.current?.focus(); } catch {} }}
       onKeyDown={(e) => {
         if (!typingDone) {

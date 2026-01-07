@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <section className="relative min-h-[100svh] w-full grid place-items-center overflow-hidden">
+    <section className="relative min-h-[100svh] min-h-[100dvh] min-h-[var(--app-height)] w-full grid place-items-center overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in-scale-soft"

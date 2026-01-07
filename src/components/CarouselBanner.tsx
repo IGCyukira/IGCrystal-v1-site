@@ -367,7 +367,7 @@ export default function CarouselBanner({
   return (
     <section
       ref={sectionRef as React.RefObject<HTMLElement>}
-      className={`relative h-[100svh] w-full overflow-hidden overflow-x-hidden ${className ?? ""}`}
+      className={`relative h-[100svh] h-[100dvh] h-[var(--app-height)] w-full overflow-hidden overflow-x-hidden ${className ?? ""}`}
       style={{ touchAction: "pan-y" }}
     >
       {/* Parallax wrapper for images */}

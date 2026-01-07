@@ -13,7 +13,7 @@ export type FullScreenBannerProps = {
 export default function FullScreenBanner({ src, alt = "banner", className, overlayClassName }: FullScreenBannerProps) {
   const [loaded, setLoaded] = useState(false);
   return (
-    <section className={`relative h-[100svh] w-full overflow-hidden ${className ?? ""}`}>
+    <section className={`relative h-[100svh] h-[100dvh] h-[var(--app-height)] w-full overflow-hidden ${className ?? ""}`}>
       <Image
         loader={revaeaLoader}
         src={src}
