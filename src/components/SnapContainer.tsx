@@ -43,9 +43,10 @@ export default function SnapContainer({ className, snapClassName = "snap-y snap-
     const s: CSSProperties = {};
     if (!snapReady) s.scrollSnapType = "none";
     if (!visible) {
-      // Avoid painting an incorrect restored scroll position before hydration.
-      s.visibility = "hidden";
+      s.opacity = 0;
+      s.pointerEvents = "none";
     }
+    s.transition = "opacity 900ms ease-out";
     return Object.keys(s).length ? s : undefined;
   }, [snapReady, visible]);
 
