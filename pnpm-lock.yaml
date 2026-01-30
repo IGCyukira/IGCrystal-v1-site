@@ -15,7 +15,7 @@ importers:
         specifier: 0.539.0
         version: 0.539.0(react@19.1.0)
       next:
-        specifier: '>=15.6.0-canary.61'
+        specifier: '>=16.1.5'
         version: 16.1.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       ogl:
         specifier: ^1.0.11
